@@ -50,6 +50,7 @@ function nextDueDate(){ const t=today(); const ds=S.fiches.map(f=>S.etat[f.id]).
 function anciennes(){ const t=today(); return S.fiches.filter(f=>{const e=S.etat[f.id]; return e && e.vu && daysBetween(e.vu,t)>=7}) }
 function grandeDue(){ const last=S.stats.derniereGrande; return anciennes().length>=3 && (!last || daysBetween(last,today())>=7) }
 function grandeDate(){ const vus=S.fiches.map(f=>S.etat[f.id]).filter(e=>e&&e.vu).map(e=>e.vu).sort(); return vus.length>=3 ? addDays(vus[2],7) : null }
+function motDu(sem, rang){ const p=(sem&&sem.programme||[]).find(x=>x.rang===rang); if(p&&p.mot) return p.mot; const su=sujetDu(sem,rang).split(/[ ,]/)[0]; return su&&su.length<=9 ? su : (ETAPES[rang-1]||"").replace(/^(La|Le|L')\s?/,"") }
 function sujetDu(sem, rang){ const p=(sem&&sem.programme||[]).find(x=>x.rang===rang); return p ? dropDot(String(p.sujet).split(/ ?[:(]/)[0]) : "" }
 const writeProg = o => PLATFORM.writeProg(o);
 function markSeen(card){
@@ -79,7 +80,7 @@ function popLayer(fallback){ if(PLATFORM.useHistory && history.state && history.
 function render(){
   const sem=semaineCourante();
   const nl=sem?luesDe(sem.id).length:0;
-  $("#sem").innerHTML = sem ? `${esc(sem.domaine||"Notion")}<br><b>${esc(sem.notion)}</b> · ${nl}/7` : "Une notion par semaine";
+  $("#sem").innerHTML = sem ? esc(sem.domaine||"Notion") : "Une notion par semaine";
   const n=dueFiches().length + (grandeDue()?1:0); $("#due").hidden=!n; $("#due").textContent=n;
   if(S.view==="jour") renderJour();
   if(S.view==="reviser" && !S.game) renderReviser();
@@ -134,8 +135,8 @@ function weekHTML(sem){
   const t=today();
   return ETAPES.map((e,i)=>{
     const c=S.cartes.find(x=>x.semaine===sem.id&&x.rang===i+1), ok=c&&c.date<=t, lu=ok&&isRead(c);
-    const lab=lu?"lue":ok?"à lire":"bientôt";
-    return `<button class="${ok?"has":"future"} ${lu?"done":""} ${c&&c.date===S.sel?"on":""}" data-d="${ok?c.date:""}" data-r="${i+1}" data-day="${addDays(sem.debut,i)}" aria-label="Jour ${i+1}, ${esc(e)}, ${lab}"><span class="dot">${lu?"✓":i+1}</span><span class="lab">${lab}</span></button>`}).join("");
+    const etat=lu?"lue":ok?"à lire":"publiée "+frJour(addDays(sem.debut,i)), mot=motDu(sem,i+1);
+    return `<button class="${ok?"has":"future"} ${lu?"done":""} ${c&&c.date===S.sel?"on":""}" data-d="${ok?c.date:""}" data-r="${i+1}" data-day="${addDays(sem.debut,i)}" aria-label="Jour ${i+1}, ${esc(mot)}, ${esc(etat)}"><span class="dot">${lu?"✓":i+1}</span><span class="lab">${esc(mot)}</span></button>`}).join("");
 }
 function renderJour(){
   const t=today(); let sem=semaineCourante();
@@ -146,13 +147,15 @@ function renderJour(){
   }
   const wk=$("#week");
   if(sem){
+    const lus=luesDe(sem.id).length;
+    $("#weekCap").innerHTML=`<b>${esc(sem.notion)}</b> · ${lus>=7?"notion terminée":"jour "+(lus+1)+" sur 7"}`;
     wk.innerHTML=weekHTML(sem);
     wk.querySelectorAll("button").forEach(b=>b.onclick=()=>{
       if(b.dataset.d){ $("#weekHint").textContent=""; S.sel=b.dataset.d; render(); return }
       const r=+b.dataset.r, sujet=sujetDu(sem,r);
       $("#weekHint").textContent=`Jour ${r} · ${ETAPES[r-1]} : cette carte sera publiée ${frJour(b.dataset.day)} vers 7h${sujet?". Au programme : "+sujet+".":"."}`.replace(/ ([?!;:])/g,NNBSP+"$1");
     });
-  } else wk.innerHTML="";
+  } else { wk.innerHTML=""; $("#weekCap").innerHTML="" }
   let top=introHTML(sem);
   if(sem && S.stats.notion!==sem.id && S.semaines.length>1 && lsGet(INTRO_KEY) && sem.id!==(maNotion()||{}).id) top+=`<div class="note banner"><p>Vous relisez « ${esc(sem.notion)} ».</p><button class="btn ghost" id="suivre">En faire votre notion</button></div>`;
   if(grandeDue()) top+=`<div class="note banner"><p><b>Grande révision de la semaine.</b> Dix questions sur ce que vous avez lu il y a plus d'une semaine.</p><button class="btn" id="goGrande">Jouer</button></div>`;

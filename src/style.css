@@ -50,12 +50,18 @@ nav.tabs button[aria-current="page"]{color:var(--accent)}
 nav.tabs .badge{position:absolute;top:8px;left:calc(50% + 6px);font-size:10px;background:var(--accent);color:var(--on-accent);border-radius:9px;padding:1px 5px;font-variant-numeric:tabular-nums;line-height:1.4}
 
 /* semaine */
-.week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:16px 0 0}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:8px 0 0}
 .week button{background:none;border:0;min-height:56px;padding:4px 0;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--ui);font-size:11px;color:var(--muted);min-width:0}
 .week .dot{width:30px;height:30px;border-radius:50%;border:1px solid var(--rule);display:grid;place-items:center;font-family:var(--display);font-size:16px;background:var(--sheet)}
 .week button.has .dot{border-color:var(--ink);color:var(--ink)}
 .week button.on .dot{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .week button.future .dot{border-style:dashed;background:transparent}
+.week-cap{font-family:var(--ui);font-size:var(--t-small);color:var(--muted);margin:14px 0 0}
+.week-cap:empty{display:none}
+.week-cap b{color:var(--accent);font-weight:600}
+.week .lab{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.week button.has .lab{color:var(--ink)}
+.week button.done .lab{color:var(--muted)}
 .week-hint{min-height:0;margin:6px 0 0}
 .week-hint:empty{display:none}
 

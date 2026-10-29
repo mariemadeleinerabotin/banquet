@@ -5,7 +5,8 @@
   </header>
   <main>
     <section id="v-jour" aria-label="Aujourd'hui">
-      <div class="week" id="week"></div>
+      <p class="week-cap" id="weekCap"></p>
+      <div class="week" id="week" role="group" aria-labelledby="weekCap"></div>
       <p class="hint week-hint" id="weekHint" aria-live="polite"></p>
       <div id="bannerHost"></div>
       <div id="cardHost"><p class="notice">La carte du jour arrive chaque matin vers 7h. Elle s'affichera ici, en quelques diapositives à faire glisser.</p></div>
