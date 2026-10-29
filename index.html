@@ -20,7 +20,7 @@
   --accent:#5E1B16; --accent-soft:#E7D6C6; --mark:#8C6526; --mark-soft:#EADCC0; --bad:#9B3B2E; --bad-soft:#F0DAD3;
   --display:"EB Garamond",Garamond,"Times New Roman",serif;
   --logo:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
-  --body:"EB Garamond",Garamond,"Times New Roman",serif;
+  --body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --nav-h:64px;
 }
@@ -36,7 +36,7 @@ html{-webkit-text-size-adjust:100%}
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
-body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.5;
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:0 calc(var(--nav-h) + 40px + env(safe-area-inset-bottom,0px))}
 .wrap{max-width:600px;margin:0 auto}
@@ -84,8 +84,8 @@ nav.tabs .badge{position:absolute;top:8px;left:calc(50% + 6px);font-size:10px;ba
 .slide{flex:0 0 100%;scroll-snap-align:start;min-height:390px;padding:22px 22px 26px;display:flex;flex-direction:column;justify-content:center;min-width:0}
 .slide .eyebrow{font-family:var(--ui);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
 .slide h2{font-family:var(--display);font-weight:500;font-size:36px;line-height:1.08;margin:0 0 16px;text-wrap:balance;color:var(--accent)}
-.slide .accroche{font-size:21px;line-height:1.4;margin:0;font-style:italic}
-.slide p.txt{font-size:20px;line-height:1.5;margin:0}
+.slide .accroche{font-family:var(--display);font-size:22px;line-height:1.35;margin:0;font-style:italic}
+.slide p.txt{font-size:19px;line-height:1.55;margin:0}
 .slide .num{font-family:var(--display);font-size:40px;color:var(--rule);line-height:1;margin-bottom:10px}
 .slide.quote{background:var(--sheet);color:var(--accent)}
 .slide.quote blockquote{margin:0;font-family:var(--display);font-style:italic;font-weight:700;font-size:28px;line-height:1.2;letter-spacing:-.01em}
