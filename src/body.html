@@ -1,0 +1,26 @@
+<div class="wrap">
+  <header class="mast">
+    <h1>Le Banquet</h1>
+    <span class="sem" id="sem">Une notion par semaine</span>
+  </header>
+  <main>
+    <section id="v-jour" aria-label="Aujourd'hui">
+      <div class="week" id="week"></div>
+      <p class="hint week-hint" id="weekHint" aria-live="polite"></p>
+      <div id="bannerHost"></div>
+      <div id="cardHost"><p class="notice">La carte du jour arrive chaque matin vers 7h. Elle s'affichera ici, en quelques diapositives à faire glisser.</p></div>
+    </section>
+    <section id="v-reviser" aria-label="Réviser" hidden></section>
+    <section id="v-penseurs" aria-label="Penseurs" hidden></section>
+    <section id="v-index" aria-label="Parcours" hidden></section>
+  </main>
+</div>
+
+<nav class="tabs" aria-label="Sections">
+  <button data-v="jour" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg>Aujourd'hui</button>
+  <button data-v="reviser"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="12" height="16" rx="1.5"/><path d="M8 20.5h10.5c.6 0 1-.4 1-1V7"/></svg>Réviser<span class="badge" id="due" hidden></span></button>
+  <button data-v="penseurs"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>Penseurs</button>
+  <button data-v="index"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Parcours</button>
+</nav>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden><div class="in" id="sheetIn"></div></div>
