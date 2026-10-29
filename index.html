@@ -423,7 +423,7 @@ function avantToi(card){
   if(card.rang===6) return "";
   const d=defiList(card), a=card.aRetenir;
   let h="";
-  if(a&&(a.texte||a.chiffre)) h+=`<div class="block fait"><p class="label">${esc(a.label||"À retenir pour briller")}</p>${a.chiffre?`<p class="big">${esc(a.chiffre)}</p>${a.legende?`<p class="leg">${esc(a.legende)}</p>`:""}`:""}${a.titre?`<p class="ft">${esc(a.titre)}</p>`:""}${a.texte?`<p class="tx">${esc(a.texte)}</p>`:""}${a.source?`<p class="src">${esc(a.source)}</p>`:""}</div>`;
+  if(a&&(a.texte||a.chiffre)) h+=`<div class="block fait"><p class="label">Did you know?</p>${a.chiffre?`<p class="big">${esc(a.chiffre)}</p>${a.legende?`<p class="leg">${esc(a.legende)}</p>`:""}`:""}${a.titre?`<p class="ft">${esc(a.titre)}</p>`:""}${a.texte?`<p class="tx">${esc(a.texte)}</p>`:""}${a.source?`<p class="src">${esc(a.source)}</p>`:""}</div>`;
   if(d.length) h+=`<div class="block"><div class="defi-head"><p class="label">Le défi du jour</p><span class="hint" id="dpos">1 / ${d.length}</span></div><div class="ddeck" id="ddeck">${d.map((q,i)=>`<div class="dcard" data-i="${i}"><span class="n">Question ${i+1}</span><p class="q">${esc(q.question)}</p><div class="opts">${q.options.map((o,j)=>`<button data-j="${j}">${esc(o)}</button>`).join("")}</div><div class="res" hidden></div><button class="btn go" hidden>${i<d.length-1?"Suivante →":"Voir mon score →"}</button></div>`).join("")}<div class="dcard fin" hidden><span class="n" style="color:var(--mark)">Ton score</span><div class="sc" id="dsc"></div><p id="dmsg"></p></div></div></div>`;
   return h;
 }
