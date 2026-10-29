@@ -460,7 +460,7 @@ function howHTML(court){
   return `<p>Une notion de philosophie ou de littérature par semaine, en sept cartes courtes. On les lit dans l'ordre, à son rythme, en commençant par le premier jour.</p>
     <p>${esc(PLATFORM.txtProg)}</p>
     ${court?"":`<p>Les sept cartes suivent toujours le même chemin : la question, la thèse, la contre-thèse, un roman, aujourd'hui, à vous, la synthèse. Les notions se choisissent dans Parcours.</p><p>L'onglet Réviser propose de petits jeux. Une réponse ratée revient le lendemain, une réponse sue revient de plus en plus tard.</p>`}
-    ${PLATFORM.install?`<details class="howto"><summary>Ajouter Le Banquet à l'écran d'accueil</summary><p>C'est aussi ce qui protège votre progression : sur iPhone, Safari efface les données d'un site qu'on n'a pas ouvert depuis 7 jours, sauf s'il est sur l'écran d'accueil.</p><p><b>iPhone</b> : dans Safari, touche Partager, puis « Sur l'écran d'accueil ».</p><p><b>Android</b> : dans Chrome, touche ⋮, puis « Ajouter à l'écran d'accueil ».</p></details>`:""}`;
+    ${PLATFORM.install?`<details class="howto"><summary>Ajouter Le Banquet à l'écran d'accueil</summary><p>C'est aussi ce qui protège votre progression : sur iPhone, Safari efface les données d'un site qu'on n'a pas ouvert depuis 7 jours, sauf s'il est sur l'écran d'accueil.</p><p><b>iPhone</b> : dans Safari, bouton Partager, puis « Sur l'écran d'accueil ».</p><p><b>Android</b> : dans Chrome, menu ⋮, puis « Ajouter à l'écran d'accueil ».</p></details>`:""}`;
 }
 function introHTML(sem){
   if(lsGet(INTRO_KEY)) return "";
@@ -718,7 +718,7 @@ function mastery(){
 }
 function tile(g,titre,desc,mm,extra,disabled){
   const pn=mm.t?mm.n/mm.t*100:0, pe=mm.t?mm.e/mm.t*100:0, reste=mm.t-mm.n-mm.e;
-  const etat = !mm.t ? "" : `<b>${mm.n}/${mm.t}</b> ${mm.u}${mm.e?` · ${mm.e} en cours`:""}${reste>0&&!mm.e&&!mm.n?` · ${reste} à découvrir`:""}${mm.n===mm.t?" · tout est là":""}`;
+  const etat = !mm.t ? "" : `<b>${mm.n}/${mm.t}</b> ${mm.u}${mm.e?` · ${mm.e} à confirmer`:""}${reste>0&&!mm.e&&!mm.n?` · ${reste} à découvrir`:""}${mm.n===mm.t?" · tout est là":""}`;
   return `<button class="game" data-g="${g}" ${disabled?"disabled":""}><span class="gt">${titre}</span><span class="gd">${desc}</span>
     <span class="mbar" aria-hidden="true"><i style="width:${pn}%"></i><i class="half" style="width:${pe}%"></i></span><span class="mtx">${extra?esc(extra):etat}</span></button>`;
 }
@@ -727,8 +727,8 @@ function renderReviser(){
   const gd=grandeDue(), M=mastery(), nd=nextDueDate(), gdate=grandeDate();
   const tiles=[
     {play:!!due.length, h:tile("cartes","Les cartes","Retournez la carte : le saviez-vous ?",M.cartes, due.length?plur(due.length,"fiche")+" à revoir aujourd'hui":(nd?"Vos fiches reviennent "+frJour(nd):"Après une première carte"), !due.length)},
-    {play:quotes.length>0, h:tile("quiadit","Qui a dit ça ?","Une phrase, une idée : retrouve son auteur.",M.quiadit,"",!quotes.length)},
-    {play:P.length>0, h:tile("nom","Le bon nom","Un portrait : mets un nom dessus.",M.nom,"",!P.length)},
+    {play:quotes.length>0, h:tile("quiadit","Qui a dit ça ?","Une phrase, une idée : retrouvez son auteur.",M.quiadit,"",!quotes.length)},
+    {play:P.length>0, h:tile("nom","Le bon nom","Un portrait : mettez un nom dessus.",M.nom,"",!P.length)},
     {play:qcm.length>0, h:tile("qcm","QCM","Concepts, œuvres, distinctions.",M.qcm,"",!qcm.length)}
   ].sort((a,b)=>(b.play?1:0)-(a.play?1:0));
   const grande = old.length>=3
@@ -757,9 +757,11 @@ function makeQ(kind, src){
 function startGame(g){
   const {P,quotes,qcm}=pools(); let qs=[];
   if(g==="cartes"){ const c=dueFiches(); if(!c.length) return; S.game={g,cards:c,i:0,shown:false,score:0}; pushLayer("game"); return renderGame() }
-  if(g==="quiadit") qs=shuffle(quotes).slice(0,Math.min(8,quotes.length)).map(q=>makeQ("quiadit",q));
-  if(g==="nom") qs=shuffle(P).slice(0,Math.min(8,P.length)).map(p=>makeQ("nom",p));
-  if(g==="qcm") qs=shuffle(qcm).slice(0,Math.min(8,qcm.length)).map(q=>makeQ("qcm",q));
+  // Priorité à ce qui n'est pas encore acquis : les questions ratées, à confirmer ou jamais vues passent avant les acquises.
+  const niv=k=>Math.min((S.stats.maitrise||{})[k]||0,2), pick=(arr,key)=>shuffle(arr).sort((a,b)=>niv(key(a))-niv(key(b))).slice(0,Math.min(8,arr.length));
+  if(g==="quiadit") qs=pick(quotes,q=>q.key).map(q=>makeQ("quiadit",q));
+  if(g==="nom") qs=pick(P,p=>"n:"+p.id).map(p=>makeQ("nom",p));
+  if(g==="qcm") qs=pick(qcm,q=>q.key).map(q=>makeQ("qcm",q));
   if(g==="grande"){
     const oldIds=new Set(anciennes().map(f=>f.id));
     const w=x=>1/(((S.etat[x.fiche]||{}).niveau||0)+1);
@@ -778,8 +780,8 @@ function renderGame(){
   if(G.i>=total){
     const enRoute=G.enRoute?[...G.enRoute].filter(k=>((S.stats.maitrise||{})[k]||0)===1).length:0;
     host.innerHTML=`<div class="play"><div class="score"><p class="label">Terminé</p><div class="big">${G.score}<small> / ${total}</small></div>
-      <p>${G.score===total?"Sans faute.":G.score>=total*0.7?"Solide. Les ratées reviendront demain.":"Les ratées reviendront demain."}</p>
-      ${enRoute?`<p class="hint">${plur(enRoute,"réponse")} en route : encore une bonne réponse pour ${enRoute>1?"les":"l'"}ancrer.</p>`:""}
+      <p>${G.score===total?"Sans faute.":G.score>=total*0.7?"Solide. Les ratées reviendront en premier à la prochaine partie.":"Les ratées reviendront en premier à la prochaine partie."}</p>
+      ${enRoute?`<p class="hint">${enRoute>1?enRoute+" bonnes réponses sont":"Une bonne réponse est"} à confirmer : une réponse compte comme acquise quand elle est trouvée deux fois de suite. ${enRoute>1?"Elles reviendront":"Elle reviendra"} en premier à la prochaine partie.</p>`:""}
       <div class="row" style="margin-top:16px"><button class="btn" id="again">Rejouer</button><button class="btn ghost" id="back">Retour</button></div></div></div>`;
     if(!G.done){ G.done=true; const o={parties:stat("parties")+1}; if(G.score===total) o.sansFaute=stat("sansFaute")+1; if(G.g==="grande"){ o.derniereGrande=today(); o.grandes=stat("grandes")+1; o.grandeScore=G.score } saveStat(o); checkBadges() }
     $("#again").onclick=()=>{ const g=G.g; S.game=null; if(PLATFORM.useHistory&&history.state&&history.state.layer){ history.replaceState(null,"",location.href) } startGame(g) };
@@ -798,7 +800,7 @@ function renderGame(){
       <div aria-live="polite">${done?`<p class="feedback"><span class="verdict ${good?"good":"bad"}">${good?"Bien vu.":"Raté."}</span><span class="who">${good?"":"C'était "}${esc(q.options[q.answer])}</span>${esc(q.explication)}</p>`:""}</div>
       <div class="acts row">${done?`<button class="btn" id="nextq">${G.i<total-1?"Suivante":"Voir le score"}</button>${q.fiche?`<button class="btn ghost" data-f="${esc(q.fiche)}">Voir la fiche</button>`:""}`:""}</div></div>`;
   }
-  host.innerHTML=`<div class="play"><div class="top"><button id="quit">← Arrêter</button><span class="hint">${G.i+1} / ${total}</span></div><div class="prog"><i style="width:${G.i/total*100}%"></i></div>${body}</div>`;
+  host.innerHTML=`<div class="play"><div class="top"><button id="quit">← Arrêter</button><span class="hint">${G.i+1} / ${total}</span></div><div class="prog"><i style="width:${(G.i+(G.g!=="cartes"&&G.picked!==null?1:0))/total*100}%"></i></div>${body}</div>`;
   $("#quit").onclick=quitGame;
   if(G.g==="cartes"){
     if($("#flip")) $("#flip").onclick=()=>{G.shown=true;renderGame()};
