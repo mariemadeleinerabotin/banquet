@@ -103,12 +103,26 @@ nav.tabs .badge{position:absolute;top:8px;left:calc(50% + 6px);font-size:10px;ba
 /* sous le deck */
 .block{margin-top:22px}
 .toi{padding:18px;background:var(--accent-soft)}
-.defi{background:var(--sheet);border:1px solid var(--rule);padding:18px 16px}
-.defi .score{font-family:var(--ui);font-size:13px;color:var(--accent);margin-top:12px;min-height:1em}
-.fait{background:var(--mark-soft);padding:20px 18px}
-.fait .ft{font-family:var(--display);font-size:26px;line-height:1.15;margin:0 0 10px;color:var(--accent)}
-.fait p{margin:0 0 8px}
-.fait .src{font-family:var(--ui);font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.fait{background:var(--accent);color:var(--sheet);padding:24px 22px 22px;display:flex;flex-direction:column;gap:6px}
+.fait .label{color:inherit;opacity:.75;margin:0}
+.fait .big{font-family:var(--display);font-weight:500;font-size:86px;line-height:.9;letter-spacing:-.02em;margin:10px 0 0;font-variant-numeric:lining-nums}
+.fait .leg{font-size:15px;line-height:1.35;opacity:.9;margin:0 0 10px}
+.fait .ft{font-family:var(--display);font-size:24px;line-height:1.15;margin:4px 0 4px}
+.fait p.tx{margin:0;font-size:16px;line-height:1.5;opacity:.92}
+.fait .src{font-family:var(--ui);font-size:11.5px;opacity:.65;margin:10px 0 0}
+.defi-head{display:flex;justify-content:space-between;align-items:baseline}
+.ddeck{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:2px 16px 6px;scroll-padding:0 16px}
+.ddeck::-webkit-scrollbar{display:none}
+.dcard{flex:0 0 86%;scroll-snap-align:start;background:var(--sheet);border:1px solid var(--rule);padding:20px 18px;min-height:280px;display:flex;flex-direction:column;min-width:0}
+.dcard .n{font-family:var(--ui);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.dcard .q{font-family:var(--display);font-size:23px;line-height:1.2;margin:10px 0 16px}
+.dcard .opts button{font-size:16px}
+.dcard .res{margin-top:12px;font-size:15px}
+.dcard .res b{font-family:var(--ui);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.dcard .go{margin-top:auto;padding-top:14px;align-self:flex-start}
+.dcard.fin{background:var(--ink);color:var(--paper);border-color:var(--ink);justify-content:center;align-items:flex-start}
+.dcard.fin .sc{font-family:var(--display);font-size:72px;line-height:1}
+.dcard.fin p{margin:8px 0 0}
 
 .toi .q{font-size:20px;margin:0 0 12px;line-height:1.35}
 textarea,input[type=search],input[type=text]{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);padding:10px 12px}
@@ -395,7 +409,7 @@ function renderJour(){
   sc.addEventListener("scroll",()=>requestAnimationFrame(upd),{passive:true});
   $("#prev").onclick=()=>sc.scrollBy({left:-sc.clientWidth,behavior:"smooth"});
   $("#next").onclick=()=>sc.scrollBy({left:sc.clientWidth,behavior:"smooth"});
-  wireQuiz(host,{quiz:card.quiz||[],flashback:card.flashback||[],defi:defiList(card)});
+  wireQuiz(host,{quiz:card.quiz||[],flashback:card.flashback||[]});
   host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
   wireDefi(host,card);
   if($("#rep")){ const r=S.reponses[card.date]||{}; $("#rep").value=r.texte||""; $("#save").onclick=()=>saveRep(card) }
@@ -409,16 +423,26 @@ function avantToi(card){
   if(card.rang===6) return "";
   const d=defiList(card), a=card.aRetenir;
   let h="";
-  if(a&&a.texte) h+=`<div class="block fait"><p class="label">${esc(a.label||"À retenir pour briller")}</p>${a.titre?`<p class="ft">${esc(a.titre)}</p>`:""}${paras(a.texte)}${a.source?`<p class="src">${esc(a.source)}</p>`:""}</div>`;
-  if(d.length) h+=`<div class="block defi"><p class="label">Le défi du jour</p>${quizHTML(d,"defi")}<p class="score" id="defiScore"></p></div>`;
+  if(a&&(a.texte||a.chiffre)) h+=`<div class="block fait"><p class="label">${esc(a.label||"À retenir pour briller")}</p>${a.chiffre?`<p class="big">${esc(a.chiffre)}</p>${a.legende?`<p class="leg">${esc(a.legende)}</p>`:""}`:""}${a.titre?`<p class="ft">${esc(a.titre)}</p>`:""}${a.texte?`<p class="tx">${esc(a.texte)}</p>`:""}${a.source?`<p class="src">${esc(a.source)}</p>`:""}</div>`;
+  if(d.length) h+=`<div class="block"><div class="defi-head"><p class="label">Le défi du jour</p><span class="hint" id="dpos">1 / ${d.length}</span></div><div class="ddeck" id="ddeck">${d.map((q,i)=>`<div class="dcard" data-i="${i}"><span class="n">Question ${i+1}</span><p class="q">${esc(q.question)}</p><div class="opts">${q.options.map((o,j)=>`<button data-j="${j}">${esc(o)}</button>`).join("")}</div><div class="res" hidden></div><button class="btn go" hidden>${i<d.length-1?"Suivante →":"Voir mon score →"}</button></div>`).join("")}<div class="dcard fin" hidden><span class="n" style="color:var(--mark)">Ton score</span><div class="sc" id="dsc"></div><p id="dmsg"></p></div></div></div>`;
   return h;
 }
 function wireDefi(host,card){
-  const d=defiList(card); if(!d.length) return; let n=0,ok=0;
-  host.querySelectorAll('[data-k="defi"] .opts button').forEach(b=>b.addEventListener("click",()=>{
-    const q=d[+b.closest("[data-q]").dataset.q]; n++; if(+b.dataset.j===q.answer) ok++;
-    if(n===d.length) $("#defiScore").textContent = ok===n ? "Sans faute." : `${ok} sur ${n}. Les fiches du jour reviendront dans tes révisions.`;
-  }));
+  const d=defiList(card), deck=host.querySelector("#ddeck"); if(!d.length||!deck) return; let ok=0;
+  const cards=[...deck.querySelectorAll(".dcard")], go=i=>{ const c=cards[i]; if(c){ c.hidden=false; deck.scrollTo({left:c.offsetLeft-16,behavior:"smooth"}) } };
+  deck.addEventListener("scroll",()=>{ const i=Math.round(deck.scrollLeft/(cards[0].offsetWidth+10)); const p=$("#dpos"); if(p) p.textContent=`${Math.min(i+1,d.length)} / ${d.length}` },{passive:true});
+  cards.slice(0,d.length).forEach((c,i)=>{
+    const q=d[i];
+    c.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>{
+      const good=+b.dataset.j===q.answer; if(good) ok++;
+      c.querySelectorAll(".opts button").forEach(x=>{x.disabled=true; if(+x.dataset.j===q.answer) x.classList.add("ok")});
+      if(!good) b.classList.add("ko");
+      const r=c.querySelector(".res"); r.hidden=false; r.innerHTML=`<b style="color:${good?"var(--accent)":"var(--bad)"}">${good?"Bien vu":"Raté"}</b> · ${esc(q.explication||"")}`;
+      c.querySelector(".go").hidden=false;
+      if(i===d.length-1){ $("#dsc").textContent=`${ok}/${d.length}`; $("#dmsg").textContent= ok===d.length?"Sans faute. Tu peux briller ce soir.":"Les fiches du jour reviendront dans tes révisions." }
+    });
+    c.querySelector(".go").onclick=()=>go(i+1);
+  });
 }
 function pcard(f){ const [fn,ln]=splitName(f.terme); return `<button class="pcard" data-f="${esc(f.id)}"><span class="fn">${esc(fn)}</span><span class="ln">${esc(ln)}</span><span class="d">${esc(f.dates||"")}</span>${f.enUnMot?`<span class="mot">${esc(f.enUnMot)}</span>`:""}</button>` }
 function refreshReply(card){}
