@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#EEF0EB">
+<title>Le Banquet</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-title" content="Le Banquet">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..600&family=EB+Garamond:ital,wght@0,400..600;1,400..500&family=Instrument+Sans:wght@400..600&display=swap">
+<style>
+/* Layout : mobile d'abord. Une colonne de lecture, la carte du jour en diapositives à faire glisser, une barre d'onglets fixée en bas. */
+:root{
+  padding-top:env(safe-area-inset-top,0px);
+  --paper:#EEF0EB; --sheet:#F8F9F6; --ink:#181C1F; --muted:#5D6661; --rule:#CDD3CC;
+  --accent:#1E5A47; --accent-soft:#DCE7E1; --mark:#9A6B12; --mark-soft:#F1E7CF; --bad:#9B3B2E; --bad-soft:#F2DEDA;
+  --display:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
+  --body:"EB Garamond",Garamond,"Times New Roman",serif;
+  --ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --nav-h:64px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#121614; --sheet:#1A1F1C; --ink:#E7EAE5; --muted:#9AA39D; --rule:#2E3532;
+  --accent:#7FC4A8; --accent-soft:#1F3029; --mark:#D9B868; --mark-soft:#332B19; --bad:#E39A8D; --bad-soft:#3A2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#121614; --sheet:#1A1F1C; --ink:#E7EAE5; --muted:#9AA39D; --rule:#2E3532;
+  --accent:#7FC4A8; --accent-soft:#1F3029; --mark:#D9B868; --mark-soft:#332B19; --bad:#E39A8D; --bad-soft:#3A2420; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 calc(var(--nav-h) + 40px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:600px;margin:0 auto}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ui{font-family:var(--ui)}
+.label{font-family:var(--ui);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;margin:0 0 8px}
+.hint{font-family:var(--ui);font-size:13px;color:var(--muted)}
+h2.page{font-family:var(--display);font-weight:500;font-size:32px;line-height:1.1;margin:22px 0 4px}
+
+header.mast{padding-block:18px 2px;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.mast h1{font-family:var(--display);font-weight:500;font-size:30px;line-height:1;margin:0}
+.mast h1 i{font-weight:400}
+.mast .sem{font-family:var(--ui);font-size:12px;color:var(--muted);text-align:right}
+
+/* barre d'onglets en bas */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--sheet);border-top:1px solid var(--rule);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
+nav.tabs button{background:none;border:0;height:var(--nav-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--ui);font-size:11.5px;color:var(--muted);position:relative}
+nav.tabs svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.6}
+nav.tabs button[aria-selected="true"]{color:var(--accent)}
+nav.tabs .badge{position:absolute;top:8px;left:calc(50% + 6px);font-size:10px;background:var(--accent);color:var(--sheet);border-radius:9px;padding:1px 5px;font-variant-numeric:tabular-nums;line-height:1.4}
+
+/* semaine */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:16px 0 4px}
+.week button{background:none;border:0;padding:4px 0;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--ui);font-size:10.5px;color:var(--muted);min-width:0}
+.week .dot{width:30px;height:30px;border-radius:50%;border:1px solid var(--rule);display:grid;place-items:center;font-family:var(--display);font-size:15px;background:var(--sheet)}
+.week button.has .dot{border-color:var(--ink);color:var(--ink)}
+.week button.on .dot{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.week button:disabled{cursor:default;opacity:.5}
+.week .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+
+.banner{display:flex;gap:12px;align-items:center;background:var(--mark-soft);border:1px solid var(--mark);padding:12px 14px;margin-top:14px}
+.banner p{margin:0;font-size:16px;flex:1;min-width:0}
+.banner b{font-weight:600}
+
+/* deck de diapositives */
+.deck{margin-top:12px;background:var(--sheet);border:1px solid var(--rule);position:relative}
+.bars{display:flex;gap:4px;padding:12px 14px 0}
+.bars i{flex:1;height:3px;background:var(--rule);border-radius:2px}
+.bars i.on{background:var(--ink)}
+.slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
+.slides::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;scroll-snap-align:start;min-height:390px;padding:22px 22px 26px;display:flex;flex-direction:column;justify-content:center;min-width:0}
+.slide .eyebrow{font-family:var(--ui);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+.slide h2{font-family:var(--display);font-weight:500;font-size:34px;line-height:1.1;margin:0 0 16px;text-wrap:balance}
+.slide .accroche{font-size:21px;line-height:1.4;margin:0;font-style:italic}
+.slide p.txt{font-size:20px;line-height:1.5;margin:0}
+.slide .num{font-family:var(--display);font-size:40px;color:var(--rule);line-height:1;margin-bottom:10px}
+.slide.quote{background:var(--ink);color:var(--paper)}
+.slide.quote blockquote{margin:0;font-family:var(--display);font-style:italic;font-size:26px;line-height:1.3}
+.slide.quote cite{display:block;margin-top:18px;font-style:normal;font-family:var(--ui);font-size:13px;opacity:.75}
+.slide.ex .kind{align-self:flex-start;font-family:var(--ui);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid var(--mark);color:var(--mark);margin-bottom:14px}
+.slide.ex h3{font-family:var(--display);font-weight:500;font-size:26px;line-height:1.15;margin:0 0 4px}
+.slide.ex .by{font-family:var(--ui);font-size:13px;color:var(--muted);margin:0 0 14px}
+.slide.idee{background:var(--accent);color:var(--sheet)}
+.slide.idee .eyebrow{color:inherit;opacity:.8}
+.slide.idee p{font-family:var(--display);font-size:28px;line-height:1.25;margin:0}
+.navbtns{display:flex;justify-content:space-between;align-items:center;padding:0 10px 10px}
+.navbtns button{background:none;border:0;font-family:var(--ui);font-size:13px;color:var(--muted);padding:8px}
+.navbtns button:disabled{opacity:.3}
+
+/* sous le deck */
+.block{margin-top:22px}
+.toi{padding:18px;background:var(--accent-soft)}
+.toi .q{font-size:20px;margin:0 0 12px;line-height:1.35}
+textarea,input[type=search],input[type=text]{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--sheet);border:1px solid var(--rule);padding:10px 12px}
+textarea{min-height:90px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.btn{font-family:var(--ui);font-size:14px;padding:10px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+.reply{margin-top:14px;white-space:pre-wrap;font-size:17px;border-left:2px solid var(--accent);padding-left:14px}
+.reply:empty{display:none}
+details.loin{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:14px 0}
+details.loin summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;font-family:var(--ui);font-size:14px;color:var(--accent)}
+details.loin summary::-webkit-details-marker{display:none}
+details.loin summary::after{content:"+"}
+details.loin[open] summary::after{content:"–"}
+details.loin .inner{margin-top:12px}
+details.loin p{margin:0 0 12px}
+.lectures{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px;font-size:16px}
+
+/* mini-cartes de penseurs */
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pcard{background:var(--sheet);border:1px solid var(--rule);padding:14px 14px 12px;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pcard .fn{font-family:var(--ui);font-size:12px;color:var(--muted)}
+.pcard .ln{font-family:var(--display);font-size:23px;line-height:1.05;font-weight:500;overflow-wrap:anywhere}
+.pcard .d{font-family:var(--ui);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pcard .mot{font-size:15px;font-style:italic;margin-top:6px;line-height:1.3}
+
+/* synthèse et quiz */
+.duel{display:grid;gap:8px}
+.duel .pos{background:var(--sheet);border:1px solid var(--rule);padding:12px 14px}
+.duel .pos b{font-family:var(--display);font-weight:500;font-size:19px;display:block}
+.qblock{display:grid;gap:18px}
+.qq{font-weight:500;margin:0 0 8px;font-size:18px}
+.opts{display:grid;gap:6px}
+.opts button{text-align:left;background:var(--sheet);border:1px solid var(--rule);padding:10px 12px;font-size:17px;line-height:1.3}
+.opts button.ok{border-color:var(--accent);background:var(--accent-soft)}
+.opts button.ko{border-color:var(--bad);background:var(--bad-soft)}
+.ex{font-size:15.5px;color:var(--muted);margin:8px 0 0}
+
+/* réviser */
+.games{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.game{background:var(--sheet);border:1px solid var(--rule);padding:16px 14px;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:120px;min-width:0}
+.game .gt{font-family:var(--display);font-size:21px;line-height:1.1}
+.game .gd{font-size:15px;color:var(--muted);line-height:1.3}
+.game .gc{margin-top:auto;font-family:var(--ui);font-size:12px;color:var(--accent)}
+.game.wide{grid-column:1 / -1;background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.game.wide .gd{color:inherit;opacity:.75}
+.game.wide .gc{color:var(--mark)}
+.game:disabled{opacity:.45;cursor:default}
+.play{margin-top:16px}
+.play .top{display:flex;justify-content:space-between;align-items:center}
+.play .top button{background:none;border:0;font-family:var(--ui);font-size:13px;color:var(--muted);padding:6px 0}
+.prog{height:3px;background:var(--rule);margin:8px 0 16px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.qcard{background:var(--sheet);border:1px solid var(--rule);padding:22px 18px;min-height:300px;display:flex;flex-direction:column}
+.qcard .kind{font-family:var(--ui);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+.qcard .prompt{font-family:var(--display);font-size:25px;line-height:1.25;margin:0 0 18px}
+.qcard .prompt.it{font-style:italic}
+.qcard .src{font-family:var(--ui);font-size:12.5px;color:var(--muted);margin:-10px 0 16px}
+.qcard .terme{font-family:var(--display);font-size:34px;line-height:1.1;margin:4px 0 8px}
+.qcard .back{border-top:1px solid var(--rule);padding-top:14px;margin-top:14px}
+.qcard .back p{margin:0 0 8px}
+.qcard .acts{margin-top:auto;padding-top:18px}
+.feedback{margin-top:12px;font-size:16px}
+.feedback b{font-family:var(--ui);font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.score{text-align:center;padding:30px 10px}
+.score .big{font-family:var(--display);font-size:64px;line-height:1}
+.empty{color:var(--muted);font-style:italic;margin:18px 0}
+
+/* penseurs */
+.era{margin-top:24px}
+.era h3{font-family:var(--ui);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;margin:0 0 10px;display:flex;gap:10px;align-items:center}
+.era h3::after{content:"";flex:1;height:1px;background:var(--rule)}
+
+/* index */
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--ink);margin-top:14px}
+.seg button{background:none;border:0;padding:9px;font-family:var(--ui);font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.wk{border-bottom:1px solid var(--rule);padding:14px 0}
+.wk .h{display:grid;grid-template-columns:2.4em minmax(0,1fr);gap:10px;align-items:baseline}
+.wk .n{font-family:var(--display);font-size:20px;color:var(--muted);font-variant-numeric:tabular-nums}
+.wk .nt{font-family:var(--display);font-size:22px;line-height:1.15}
+.wk .qs{font-size:15.5px;color:var(--muted);display:block}
+.dom{font-family:var(--ui);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.wk .days{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0 calc(2.4em + 10px)}
+.chip{font-family:var(--ui);font-size:12.5px;padding:5px 10px;border:1px solid var(--rule);background:var(--sheet);border-radius:999px;text-align:left}
+.chip.on{border-color:var(--accent);color:var(--accent)}
+.pick{font-family:var(--ui);font-size:12.5px;padding:6px 10px;border:1px solid var(--rule);background:var(--sheet);white-space:nowrap}
+.pick[aria-pressed="true"]{background:var(--accent);color:var(--sheet);border-color:var(--accent)}
+.up{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule)}
+.up .nt{font-family:var(--display);font-size:20px;line-height:1.15}
+.up .qs{font-size:15px;color:var(--muted);display:block}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 4px}
+.filters button{font-family:var(--ui);font-size:12.5px;padding:5px 10px;border:1px solid var(--rule);background:transparent;border-radius:999px;color:var(--muted)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.az{list-style:none;padding:0;margin:8px 0 0}
+.az li button{width:100%;background:none;border:0;border-bottom:1px solid var(--rule);padding:12px 0;display:flex;justify-content:space-between;gap:10px;align-items:baseline;text-align:left}
+.az .t{font-family:var(--display);font-size:20px}
+.az .k{font-family:var(--ui);font-size:11.5px;color:var(--muted);white-space:nowrap}
+.status{font-family:var(--ui);font-size:13px;color:var(--muted);margin-top:8px;min-height:1.2em}
+
+/* fiche détaillée (feuille plein écran) */
+.sheet{position:fixed;inset:0;z-index:30;background:var(--paper);overflow-y:auto;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) max(16px,env(safe-area-inset-left,0px))}
+.sheet .in{max-width:600px;margin:0 auto}
+.sheet .close{background:none;border:0;font-family:var(--ui);font-size:14px;color:var(--accent);padding:8px 0}
+.idcard{background:var(--ink);color:var(--paper);padding:22px 20px;margin-top:8px}
+.idcard .fn{font-family:var(--ui);font-size:13px;opacity:.75}
+.idcard .ln{font-family:var(--display);font-size:46px;line-height:1;font-weight:500;overflow-wrap:anywhere}
+.idcard .meta{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--ui);font-size:12.5px;opacity:.8;margin-top:10px}
+.idcard .mot{font-family:var(--display);font-style:italic;font-size:22px;margin-top:14px;color:var(--mark)}
+.sec{margin-top:22px}
+.sec p{margin:0 0 10px}
+.theses{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.theses li{padding-left:16px;position:relative}
+.theses li::before{content:"";position:absolute;left:0;top:.7em;width:7px;height:1px;background:var(--accent)}
+.cit{margin:0 0 12px;padding-left:14px;border-left:1px solid var(--ink)}
+.cit p{font-style:italic;margin:0;font-size:19px}
+.cit span{font-family:var(--ui);font-size:12px;color:var(--muted)}
+.memo{background:var(--mark-soft);padding:14px 16px}
+.memo p{margin:0}
+.rel{display:grid;gap:6px}
+.rel button{background:var(--sheet);border:1px solid var(--rule);padding:10px 12px;text-align:left;font-size:16px}
+.rel b{font-family:var(--ui);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);display:block;font-weight:500}
+.pop{display:grid;gap:8px}
+.pop div{background:var(--sheet);border:1px solid var(--rule);padding:10px 12px;font-size:16px}
+.pop i{font-family:var(--ui);font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mark);display:block}
+.notice{font-family:var(--ui);font-size:14px;color:var(--muted);margin:24px 0}
+@media (min-width:700px){ body{font-size:19px} .slide{min-height:420px;padding:30px 34px} .mast h1{font-size:36px} }
+@media (prefers-reduced-motion:no-preference){.qcard,.deck{animation:rise .3s ease-out both}@keyframes rise{from{transform:translateY(6px);opacity:.6}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <h1>Le <i>Banquet</i></h1>
+    <span class="sem" id="sem">Une notion par semaine</span>
+  </header>
+  <main>
+    <section id="v-jour">
+      <div class="week" id="week"></div>
+      <div id="bannerHost"></div>
+      <div id="cardHost"><p class="notice">La carte du jour arrive chaque matin vers 7h. Elle s'affichera ici, en quelques diapositives à faire glisser.</p></div>
+    </section>
+    <section id="v-reviser" hidden></section>
+    <section id="v-penseurs" hidden></section>
+    <section id="v-index" hidden></section>
+  </main>
+</div>
+
+<nav class="tabs" role="tablist" aria-label="Sections">
+  <button role="tab" data-v="jour" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg>Aujourd'hui</button>
+  <button role="tab" data-v="reviser" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="12" height="16" rx="1.5"/><path d="M8 20.5h10.5c.6 0 1-.4 1-1V7"/></svg>Réviser<span class="badge" id="due" hidden></span></button>
+  <button role="tab" data-v="penseurs" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>Penseurs</button>
+  <button role="tab" data-v="index" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Index</button>
+</nav>
+
+<div class="sheet" id="sheet" hidden><div class="in" id="sheetIn"></div></div>
+
+<script>
+const S = {cartes:[], semaines:[], fiches:[], plan:null, reponses:{}, stats:{}, etat:{}, full:{}, sel:null, view:"jour", idx:"notions", filt:"Tout", q:"", game:null};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ETAPES = ["La question","La thèse","La contre-thèse","La littérature","Aujourd'hui","À toi","La synthèse"];
+const COURT = ["Question","Thèse","Contre","Roman","Aujourd'hui","À toi","Synthèse"];
+const INTERVALLES = [2,7,21,60,150,365];
+const VIEWS = ["jour","reviser","penseurs","index"];
+
+function today(){
+  const p = new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());
+  const g = t => p.find(x=>x.type===t).value; return `${g("year")}-${g("month")}-${g("day")}`;
+}
+function addDays(d,n){const x=new Date(d+"T12:00:00Z");x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}
+function daysBetween(a,b){return Math.round((new Date(b+"T12:00:00Z")-new Date(a+"T12:00:00Z"))/864e5)}
+function frDate(d){return new Date(d+"T12:00:00Z").toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",timeZone:"UTC"})}
+const paras = a => (Array.isArray(a)?a:String(a||"").split("\n")).filter(Boolean).map(p=>`<p>${esc(p)}</p>`).join("");
+const shuffle = a => { a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a };
+function splitName(t){ const parts=String(t).trim().split(/\s+/); if(parts.length<2) return ["",t]; const parts2=[...parts]; let ln=parts2.pop(); while(parts2.length && /^(de|d'|von|van|la|le|du|des)$/i.test(parts2[parts2.length-1])) ln=parts2.pop()+" "+ln; return [parts2.join(" "), ln] }
+
+/* ---------- données dérivées ---------- */
+const fiche = id => S.fiches.find(f=>f.id===id);
+const penseurs = () => S.fiches.filter(f=>f.type==="Penseur");
+function currentCard(){ const t=today(); return S.cartes.filter(c=>c.date<=t).sort((a,b)=>b.date.localeCompare(a.date))[0] || null }
+function semaineCourante(){ const c=S.cartes.find(c=>c.date===S.sel)||currentCard(); return c?S.semaines.find(s=>s.id===c.semaine):S.semaines[S.semaines.length-1] }
+/* progression : propre à chaque personne, dans son espace privé (data/users/<id>/progres) */
+const nextOf = (e,t) => e.prochaine || addDays(e.vu||t,2);
+function dueFiches(){ const t=today(); return S.fiches.filter(f=>{const e=S.etat[f.id]; return e && nextOf(e,t)<=t}).sort((a,b)=>nextOf(S.etat[a.id],t).localeCompare(nextOf(S.etat[b.id],t))) }
+function anciennes(){ const t=today(); return S.fiches.filter(f=>{const e=S.etat[f.id]; return e && e.vu && daysBetween(e.vu,t)>=7}) }
+function grandeDue(){ const last=S.stats.derniereGrande; return anciennes().length>=3 && (!last || daysBetween(last,today())>=7) }
+const KEY="banquet.progres.v1";
+function loadLocal(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||"{}"); S.etat=d.etat||{}; S.stats={derniereGrande:d.derniereGrande||null}; S.reponses=d.reponses||{} }catch(e){} }
+function saveLocal(){ try{ localStorage.setItem(KEY,JSON.stringify({etat:S.etat,derniereGrande:S.stats.derniereGrande||null,reponses:S.reponses})) }catch(e){} }
+function writeProg(o){ saveLocal() }
+function markSeen(card){
+  const t=today(), add={};
+  (card.fiches||[]).concat(card.penseurs||[]).forEach(id=>{ if(fiche(id) && !S.etat[id]) add[id]={vu:t} });
+  if(!Object.keys(add).length) return;
+  Object.assign(S.etat,add); writeProg({etat:add});
+}
+
+/* ---------- navigation ---------- */
+function show(v){
+  S.view=v; closeSheet();
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));
+  VIEWS.forEach(k=>$("#v-"+k).hidden=k!==v);
+  try{ if(location.hash.slice(1)!==v) history.replaceState(null,"","#"+v) }catch(e){}
+  window.scrollTo(0,0); render();
+}
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1); if(VIEWS.includes(h)&&h!==S.view) show(h)});
+
+function render(){
+  const sem=semaineCourante();
+  $("#sem").innerHTML = sem ? `Semaine ${sem.numero}<br><b style="font-weight:500;color:var(--ink)">${esc(sem.notion)}</b>` : "Une notion par semaine";
+  const n=dueFiches().length + (grandeDue()?1:0); $("#due").hidden=!n; $("#due").textContent=n;
+  if(S.view==="jour") renderJour();
+  if(S.view==="reviser" && !S.game) renderReviser();
+  if(S.view==="penseurs") renderPenseurs();
+  if(S.view==="index") renderIndex();
+}
+
+/* ---------- Aujourd'hui ---------- */
+function slidesFor(card){
+  const out=[];
+  out.push(`<div class="slide"><p class="eyebrow">Jour ${card.rang} · ${esc(card.etape||ETAPES[card.rang-1])}</p><h2>${esc(card.titre)}</h2>${card.accroche?`<p class="accroche">${esc(card.accroche)}</p>`:""}<p class="hint" style="margin-top:22px">Fais glisser →</p></div>`);
+  (card.essentiel||[]).forEach((p,i)=>out.push(`<div class="slide"><div class="num">${i+1}</div><p class="txt">${esc(p)}</p></div>`));
+  if(card.extrait&&card.extrait.texte) out.push(`<div class="slide quote"><blockquote>« ${esc(card.extrait.texte)} »</blockquote><cite>${esc(card.extrait.auteur)}, <i>${esc(card.extrait.oeuvre)}</i>${card.extrait.date?" ("+esc(card.extrait.date)+")":""}${card.extrait.traduction?" · trad. "+esc(card.extrait.traduction):""}</cite></div>`);
+  (card.exemples||[]).forEach(e=>out.push(`<div class="slide ex"><span class="kind">${esc(e.type||"Exemple")}</span><h3>${esc(e.titre)}</h3><p class="by">${esc(e.auteur||"")}</p><p class="txt">${esc(e.texte)}</p></div>`));
+  if(card.idee) out.push(`<div class="slide idee"><p class="eyebrow">L'idée à retenir</p><p>${esc(card.idee)}</p></div>`);
+  return out;
+}
+function quizHTML(list, key){
+  return `<div class="qblock">${list.map((q,i)=>`<div data-k="${key}" data-q="${i}"><p class="qq">${esc(q.question)}</p><div class="opts">${q.options.map((o,j)=>`<button data-j="${j}">${esc(o)}</button>`).join("")}</div><p class="ex" hidden>${esc(q.explication||"")}</p></div>`).join("")}</div>`;
+}
+function wireQuiz(host, lists){
+  host.querySelectorAll("[data-k][data-q]").forEach(div=>{
+    const q=lists[div.dataset.k][+div.dataset.q];
+    div.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+      div.querySelectorAll("button").forEach(x=>{x.disabled=true; if(+x.dataset.j===q.answer) x.classList.add("ok")});
+      if(+b.dataset.j!==q.answer) b.classList.add("ko");
+      div.querySelector(".ex").hidden=false;
+    });
+  });
+}
+function renderJour(){
+  const cur=currentCard(); if(!S.sel&&cur) S.sel=cur.date;
+  const sem=semaineCourante(), t=today();
+  const wk=$("#week");
+  if(sem){
+    wk.innerHTML=ETAPES.map((e,i)=>{const c=S.cartes.find(x=>x.semaine===sem.id&&x.rang===i+1), ok=c&&c.date<=t;
+      return `<button ${ok?"":"disabled"} class="${ok?"has":""} ${c&&c.date===S.sel?"on":""}" data-d="${c?c.date:""}" title="${esc(e)}"><span class="dot">${i+1}</span><span class="lab">${COURT[i]}</span></button>`}).join("");
+    wk.querySelectorAll("button[data-d]").forEach(b=>b.onclick=()=>{if(b.dataset.d){S.sel=b.dataset.d;render()}});
+  } else wk.innerHTML="";
+  $("#bannerHost").innerHTML = grandeDue() ? `<div class="banner"><p><b>Grande révision de la semaine.</b> Dix questions sur ce que tu as vu il y a plus d'une semaine.</p><button class="btn" id="goGrande">Jouer</button></div>` : "";
+  if($("#goGrande")) $("#goGrande").onclick=()=>{show("reviser");startGame("grande")};
+  if(!S.cartes.find(c=>c.date===S.sel)) return;
+  const host=$("#cardHost");
+  if(!S.full[S.sel]){ loadCard(S.sel); return }
+  const card=S.full[S.sel];
+  if(card.date<=t) markSeen(card);
+  if(host.dataset.d===card.date && host.dataset.m===String(card.maj||"")+S.fiches.length){ refreshReply(card); return }
+  host.dataset.d=card.date; host.dataset.m=String(card.maj||"")+S.fiches.length;
+  const sl=slidesFor(card);
+  const ppl=(card.penseurs||[]).map(fiche).filter(Boolean);
+  const others=(card.fiches||[]).filter(id=>!(card.penseurs||[]).includes(id)).map(fiche).filter(Boolean);
+  const big=card.rang===6;
+  let extra="";
+  if(card.synthese) extra+=`<div class="block"><p class="label">Qui pense quoi</p><div class="duel">${(card.synthese.positions||[]).map(p=>`<div class="pos"><b>${esc(p.qui)}</b>${esc(p.these)}</div>`).join("")}</div>${card.synthese.fil?`<p style="margin-top:12px">${esc(card.synthese.fil)}</p>`:""}</div>`;
+  if(card.quiz&&card.quiz.length) extra+=`<div class="block"><p class="label">Le quiz de la semaine</p>${quizHTML(card.quiz,"quiz")}</div>`;
+  if(card.flashback&&card.flashback.length) extra+=`<div class="block"><p class="label">Retour en arrière</p><p class="hint" style="margin:-4px 0 12px">Des questions sur les semaines passées.</p>${quizHTML(card.flashback,"flashback")}</div>`;
+  host.innerHTML=`<div class="deck"><div class="bars">${sl.map((_,i)=>`<i class="${i===0?"on":""}"></i>`).join("")}</div><div class="slides" id="slides">${sl.join("")}</div>
+     <div class="navbtns"><button id="prev" disabled>← Précédent</button><span class="hint" id="pos">1 / ${sl.length}</span><button id="next">Suivant →</button></div></div>
+   ${ppl.length?`<div class="block"><p class="label">Les penseurs du jour</p><div class="people">${ppl.map(pcard).join("")}</div></div>`:""}
+   ${extra}
+   <div class="block toi"><p class="label">${big?"À toi d'écrire":"Une question pour toi"}</p><p class="q">${esc(card.question||"")}</p>
+     <label for="rep" class="hint">${big?"Dix lignes. Ce que tu penses vraiment, pas ce qu'il faudrait penser.":"Réponds en une phrase ou deux. Ta réponse reste sur ton téléphone."}</label>
+     <textarea id="rep" style="${big?"min-height:170px":""}"></textarea>
+     <div class="row"><button class="btn" id="save">Garder ma réponse</button><span class="hint" id="st"></span></div></div>
+   ${card.plusLoin?`<div class="block"><details class="loin"><summary>Pour aller plus loin${card.plusLoin.duree?" · "+esc(card.plusLoin.duree):""}</summary><div class="inner">${card.plusLoin.titre?`<p><b>${esc(card.plusLoin.titre)}</b></p>`:""}${paras(card.plusLoin.paragraphes)}${(card.plusLoin.lectures||[]).length?`<p class="label" style="margin-top:14px">À lire</p><ul class="lectures">${card.plusLoin.lectures.map(l=>`<li><b style="font-weight:500">${esc(l.auteur)}</b>, <i>${esc(l.titre)}</i>${l.note?" · "+esc(l.note):""}</li>`).join("")}</ul>`:""}</div></details></div>`:""}
+   ${others.length?`<div class="block"><p class="label">Les fiches du jour</p><div class="row" style="margin-top:0">${others.map(f=>`<button class="chip" data-f="${esc(f.id)}">${esc(f.terme)}</button>`).join("")}</div></div>`:""}`;
+  const sc=$("#slides"), bars=[...host.querySelectorAll(".bars i")];
+  const upd=()=>{const i=Math.round(sc.scrollLeft/sc.clientWidth); bars.forEach((b,k)=>b.classList.toggle("on",k<=i)); $("#pos").textContent=`${i+1} / ${sl.length}`; $("#prev").disabled=i===0; $("#next").disabled=i===sl.length-1};
+  sc.addEventListener("scroll",()=>requestAnimationFrame(upd),{passive:true});
+  $("#prev").onclick=()=>sc.scrollBy({left:-sc.clientWidth,behavior:"smooth"});
+  $("#next").onclick=()=>sc.scrollBy({left:sc.clientWidth,behavior:"smooth"});
+  wireQuiz(host,{quiz:card.quiz||[],flashback:card.flashback||[]});
+  host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
+  const r=S.reponses[card.date]||{}; $("#rep").value=r.texte||"";
+  $("#save").onclick=()=>saveRep(card);
+}
+function pcard(f){ const [fn,ln]=splitName(f.terme); return `<button class="pcard" data-f="${esc(f.id)}"><span class="fn">${esc(fn)}</span><span class="ln">${esc(ln)}</span><span class="d">${esc(f.dates||"")}</span>${f.enUnMot?`<span class="mot">${esc(f.enUnMot)}</span>`:""}</button>` }
+function refreshReply(card){}
+function saveRep(card){
+  const texte=$("#rep").value.trim();
+  S.reponses[card.date]={texte,semaine:card.semaine,rang:card.rang,maj:today()}; saveLocal();
+  $("#st").textContent="Gardé sur ce téléphone.";
+}
+async function loadCard(date){
+  if(S.loading===date) return; S.loading=date;
+  $("#cardHost").innerHTML='<p class="notice">Ouverture de la carte…</p>';
+  try{ S.full[date]=await getJSON("data/cartes/"+date+".json"); S.loading=null; $("#cardHost").dataset.d=""; if(S.view==="jour") renderJour() }
+  catch(e){ S.loading=null; $("#cardHost").innerHTML='<p class="notice">La carte ne s\'est pas chargée. Vérifie ta connexion et recharge la page.</p>' }
+}
+
+/* ---------- Réviser : jeux ---------- */
+function pools(){
+  const P=penseurs();
+  const quotes=[]; P.forEach(p=>{(p.citations||[]).forEach(c=>quotes.push({p,texte:c.texte,source:c.source,cit:true})); (p.theses||[]).forEach(t=>quotes.push({p,texte:t,cit:false}))});
+  const qcm=[]; S.fiches.forEach(f=>(f.qcm||[]).forEach(q=>qcm.push({f,q})));
+  return {P,quotes,qcm};
+}
+function renderReviser(){
+  const host=$("#v-reviser"), due=dueFiches(), {P,quotes,qcm}=pools(), old=anciennes();
+  const gd=grandeDue();
+  host.innerHTML=`<h2 class="page">Réviser</h2><p class="hint">Quelques minutes, une fois par jour. Ce que tu rates revient le lendemain ; ce que tu sais revient de plus en plus tard. Ta progression reste sur ce téléphone.</p>
+
+   <div class="games">
+     <button class="game wide" data-g="grande" ${old.length<3?"disabled":""}><span class="gt">La grande révision</span><span class="gd">Dix questions mêlées sur tout ce que tu as vu il y a plus d'une semaine.</span><span class="gc">${old.length<3?"Disponible à partir de la semaine 2":gd?"À faire cette semaine":"Faite le "+esc(frDate(S.stats.derniereGrande))+" · rejouer"}</span></button>
+     <button class="game" data-g="cartes" ${due.length?"":"disabled"}><span class="gt">Les cartes</span><span class="gd">Retourne la carte, dis si tu savais.</span><span class="gc">${due.length?due.length+" à revoir":"Rien à revoir aujourd'hui"}</span></button>
+     <button class="game" data-g="quiadit" ${quotes.length&&P.length>=2?"":"disabled"}><span class="gt">Qui a dit ça ?</span><span class="gd">Une phrase, une idée : retrouve son auteur.</span><span class="gc">${quotes.length} phrases</span></button>
+     <button class="game" data-g="nom" ${P.length>=2?"":"disabled"}><span class="gt">Le bon nom</span><span class="gd">Un portrait en trois traits : mets un nom dessus.</span><span class="gc">${P.length} penseurs</span></button>
+     <button class="game" data-g="qcm" ${qcm.length?"":"disabled"}><span class="gt">QCM</span><span class="gd">Concepts, œuvres, distinctions.</span><span class="gc">${qcm.length} questions</span></button>
+   </div>`;
+  host.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>startGame(b.dataset.g));
+}
+function optsFrom(correct, P, n=4){
+  const others=shuffle(P.filter(p=>p.id!==correct.id)).sort((a,b)=>(a.semaine===correct.semaine?-1:0)-(b.semaine===correct.semaine?-1:0)).slice(0,n-1);
+  return shuffle([correct,...others]);
+}
+function makeQ(kind, src){
+  const {P}=pools();
+  if(kind==="quiadit"){ const q=src; const o=optsFrom(q.p,P); return {kind:"Qui a dit ça ?",prompt:q.texte,it:q.cit,src:q.cit&&q.source?"":"",options:o.map(p=>p.terme),answer:o.indexOf(q.p),fiche:q.p.id,explication:`${q.p.terme}${q.p.dates?" ("+q.p.dates+")":""}${q.cit&&q.source?", "+q.source:""}. ${q.p.enUnMot||""}`} }
+  if(kind==="nom"){ const p=src; const o=optsFrom(p,P); const th=(p.theses||[])[0]||p.resume; return {kind:"Le bon nom",prompt:`${p.pays?p.pays+", ":""}${p.dates||""}. ${p.enUnMot?p.enUnMot+". ":""}${th}`,options:o.map(x=>x.terme),answer:o.indexOf(p),fiche:p.id,explication:p.memo||p.resume} }
+  if(kind==="qcm"){ return {kind:"QCM · "+src.f.terme,prompt:src.q.question,options:src.q.options,answer:src.q.answer,fiche:src.f.id,explication:src.q.explication||""} }
+}
+function startGame(g){
+  const {P,quotes,qcm}=pools(); let qs=[];
+  if(g==="cartes"){ S.game={g,cards:dueFiches(),i:0,shown:false,score:0}; return renderGame() }
+  if(g==="quiadit") qs=shuffle(quotes).slice(0,8).map(q=>makeQ("quiadit",q));
+  if(g==="nom") qs=shuffle(P).slice(0,8).map(p=>makeQ("nom",p));
+  if(g==="qcm") qs=shuffle(qcm).slice(0,8).map(q=>makeQ("qcm",q));
+  if(g==="grande"){
+    const oldIds=new Set(anciennes().map(f=>f.id));
+    const w=x=>1/(((S.etat[x.fiche]||{}).niveau||0)+1);
+    const pool=[...quotes.filter(q=>oldIds.has(q.p.id)&&P.length>=2).map(q=>makeQ("quiadit",q)),
+                ...P.filter(p=>oldIds.has(p.id)&&P.length>=2).map(p=>makeQ("nom",p)),
+                ...qcm.filter(q=>oldIds.has(q.f.id)).map(q=>makeQ("qcm",q))];
+    qs=shuffle(pool).sort((a,b)=>w(b)-w(a)+ (Math.random()-.5)).slice(0,10);
+  }
+  if(!qs.length) return;
+  S.game={g,qs,i:0,score:0,picked:null}; renderGame();
+}
+function renderGame(){
+  const host=$("#v-reviser"), G=S.game;
+  const total=G.g==="cartes"?G.cards.length:G.qs.length;
+  if(G.i>=total){
+    host.innerHTML=`<div class="play"><div class="score"><p class="label">Terminé</p><div class="big">${G.score}<span style="font-size:.4em;color:var(--muted)"> / ${total}</span></div><p>${G.score===total?"Sans faute.":G.score>=total*0.7?"Solide. Les ratées reviendront demain.":"Les ratées reviendront demain : c'est comme ça que ça rentre."}</p><div class="row" style="justify-content:center"><button class="btn" id="again">Rejouer</button><button class="btn ghost" id="back">Retour</button></div></div></div>`;
+    if(G.g==="grande") saveStat({derniereGrande:today()});
+    $("#again").onclick=()=>startGame(G.g); $("#back").onclick=()=>{S.game=null;renderReviser()}; return;
+  }
+  let body="";
+  if(G.g==="cartes"){
+    const f=G.cards[G.i];
+    body=`<div class="qcard"><span class="kind">${esc(f.type)}${f.dates?" · "+esc(f.dates):""}</span><div class="terme">${esc(f.terme)}</div><p class="prompt it" style="font-size:20px;color:var(--muted)">${esc(f.question||"Que sais-tu de cette fiche ?")}</p>
+      ${G.shown?`<div class="back">${f.formule?`<p style="font-family:var(--display);font-style:italic;font-size:20px">${esc(f.formule)}</p>`:""}<p>${esc(f.resume)}</p>${f.memo?`<p class="hint">Pour retenir : ${esc(f.memo)}</p>`:""}</div>`:""}
+      <div class="acts row">${G.shown?`<button class="btn" id="ok">Je savais</button><button class="btn ghost" id="ko">À revoir</button>`:`<button class="btn" id="flip">Retourner la carte</button>`}</div></div>`;
+  } else {
+    const q=G.qs[G.i], done=G.picked!==null;
+    body=`<div class="qcard"><span class="kind">${esc(q.kind)}</span><p class="prompt ${q.it?"it":""}">${q.it?"« ":""}${esc(q.prompt)}${q.it?" »":""}</p>
+      <div class="opts">${q.options.map((o,j)=>`<button data-j="${j}" ${done?"disabled":""} class="${done&&j===q.answer?"ok":""} ${done&&j===G.picked&&j!==q.answer?"ko":""}">${esc(o)}</button>`).join("")}</div>
+      ${done?`<p class="feedback"><b style="color:${G.picked===q.answer?"var(--accent)":"var(--bad)"}">${G.picked===q.answer?"Oui":"Non"}</b> · ${esc(q.explication)}</p>`:""}
+      <div class="acts row">${done?`<button class="btn" id="nextq">Suivante</button>${q.fiche?`<button class="btn ghost" data-f="${esc(q.fiche)}">Voir la fiche</button>`:""}`:""}</div></div>`;
+  }
+  host.innerHTML=`<div class="play"><div class="top"><button id="quit">← Arrêter</button><span class="hint">${G.i+1} / ${total}</span></div><div class="prog"><i style="width:${G.i/total*100}%"></i></div>${body}</div>`;
+  $("#quit").onclick=()=>{S.game=null;renderReviser()};
+  if(G.g==="cartes"){
+    if($("#flip")) $("#flip").onclick=()=>{G.shown=true;renderGame()};
+    if($("#ok")) $("#ok").onclick=()=>{grade(G.cards[G.i],true,true);G.score++;G.i++;G.shown=false;renderGame()};
+    if($("#ko")) $("#ko").onclick=()=>{grade(G.cards[G.i],false,true);G.i++;G.shown=false;renderGame()};
+  } else {
+    host.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>{const q=G.qs[G.i];G.picked=+b.dataset.j;const ok=G.picked===q.answer;if(ok)G.score++;const f=fiche(q.fiche);if(f)grade(f,ok,false);renderGame()});
+    if($("#nextq")) $("#nextq").onclick=()=>{G.i++;G.picked=null;renderGame()};
+    host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
+  }
+}
+async function grade(f, ok, force){
+  const t=today(), e=S.etat[f.id]||{vu:t}, due=nextOf(e,t)<=t;
+  let niveau=e.niveau||0, prochaine=e.prochaine;
+  if(!ok){ niveau=0; prochaine=addDays(t,1) }
+  else if(due||force){ niveau=Math.min(niveau+1,INTERVALLES.length); prochaine=addDays(t,INTERVALLES[niveau-1]) }
+  else if(S.etat[f.id]) return;
+  const ne={vu:e.vu||t,niveau,...(prochaine?{prochaine}:{})};
+  S.etat[f.id]=ne;
+  const n=dueFiches().length+(grandeDue()?1:0); $("#due").hidden=!n; $("#due").textContent=n;
+  writeProg({etat:{[f.id]:ne}});
+}
+function saveStat(o){ S.stats=Object.assign({},S.stats,o); writeProg(o) }
+
+/* ---------- Penseurs ---------- */
+const ERAS=[["Antiquité",-9999,400],["Moyen Âge",400,1450],["Renaissance et âge classique",1450,1700],["Lumières",1700,1790],["XIXe siècle",1790,1880],["XXe siècle",1880,1950],["Aujourd'hui",1950,9999]];
+function renderPenseurs(){
+  const host=$("#v-penseurs"), P=penseurs().sort((a,b)=>(a.naissance??0)-(b.naissance??0));
+  let html=`<h2 class="page">Penseurs</h2><p class="hint">Rangés dans l'ordre du temps, pour savoir qui répond à qui. Touche une carte pour voir le portrait complet.</p>`;
+  if(!P.length) html+=`<p class="empty">Chaque penseur rencontré dans les cartes aura ici son portrait.</p>`;
+  ERAS.forEach(([nom,a,b])=>{const L=P.filter(p=>(p.naissance??0)>=a&&(p.naissance??0)<b); if(L.length) html+=`<div class="era"><h3>${nom}</h3><div class="people">${L.map(pcard).join("")}</div></div>`});
+  host.innerHTML=html; host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
+}
+
+/* ---------- Index ---------- */
+function renderIndex(){
+  const host=$("#v-index"), keep=document.activeElement&&document.activeElement.id==="lq";
+  let html=`<h2 class="page">Index</h2><div class="seg"><button aria-pressed="${S.idx==="notions"}" data-s="notions">Notions</button><button aria-pressed="${S.idx==="fiches"}" data-s="fiches">Toutes les fiches</button></div>`;
+  if(S.idx==="notions"){
+    const sems=[...S.semaines].sort((a,b)=>b.numero-a.numero), cur=semaineCourante(), t=today();
+    html+=`<p class="label" style="margin-top:22px">Déjà parcourues</p>`;
+    html+= sems.length? sems.map(s=>{const cs=S.cartes.filter(c=>c.semaine===s.id&&c.date<=t).sort((a,b)=>a.rang-b.rang);
+      return `<div class="wk"><div class="h"><span class="n">${String(s.numero).padStart(2,"0")}</span><span><span class="dom">${esc(s.domaine)}${cur&&cur.id===s.id?" · en cours":""}</span><span class="nt">${esc(s.notion)}</span><span class="qs">${esc(s.question)}</span></span></div>
+       <div class="days">${cs.map(c=>`<button class="chip" data-d="${c.date}">${c.rang}. ${esc(c.titre)}</button>`).join("")}</div></div>`}).join("") : `<p class="empty">Ta première notion apparaîtra ici.</p>`;
+    const plan=S.plan||{suivantes:[]}, choix=plan.choix&&plan.choix.notion;
+    const o=false;
+    html+=`<p class="label" style="margin-top:26px">À venir</p><p class="hint" style="margin:-4px 0 6px">${o?"Choisis celle qui te tente : elle passera la semaine prochaine.":"Le programme des semaines suivantes."}</p>
+      ${choix?`<div class="up"><span><span class="dom">${esc(plan.choix.domaine||"Choisie")}</span><span class="nt">${esc(plan.choix.notion)}</span>${plan.choix.question?`<span class="qs">${esc(plan.choix.question)}</span>`:""}</span>${o?`<button class="pick" aria-pressed="true" id="unpick">Choisie · annuler</button>`:`<span class="hint">la semaine prochaine</span>`}</div>`:""}
+      ${(plan.suivantes||[]).filter(s=>s.notion!==choix).map((s,i)=>`<div class="up"><span><span class="dom">${esc(s.domaine)}</span><span class="nt">${esc(s.notion)}</span><span class="qs">${esc(s.question||"")}</span></span>${o?`<button class="pick" aria-pressed="false" data-n="${esc(s.notion)}">Semaine prochaine</button>`:"<span></span>"}</div>`).join("")}
+      ${o?`<div style="margin-top:18px"><label for="libre" class="label" style="display:block">Une notion qui te tente</label><input type="text" id="libre" placeholder="la jalousie, l'ennui, Montaigne…"><div class="row"><button class="btn" id="libgo">Pour la semaine prochaine</button></div><div class="status" id="pst"></div></div>`:""}`;
+  } else {
+    const types=["Tout",...[...new Set(S.fiches.map(f=>f.type).filter(Boolean))].sort()], q=S.q.toLowerCase();
+    const list=S.fiches.filter(f=>(S.filt==="Tout"||f.type===S.filt)&&(!q||(f.terme+" "+(f.resume||"")+" "+(f.enUnMot||"")).toLowerCase().includes(q))).sort((a,b)=>a.terme.localeCompare(b.terme,"fr"));
+    html+=`<div style="margin-top:16px"><label for="lq" class="hint">Chercher un nom, une œuvre, une idée</label><input type="search" id="lq" value="${esc(S.q)}" autocomplete="off"></div>
+      <div class="filters">${types.map(t=>`<button aria-pressed="${t===S.filt}" data-t="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+      ${list.length?`<ul class="az">${list.map(f=>`<li><button data-f="${esc(f.id)}"><span class="t">${esc(f.terme)}</span><span class="k">${esc(f.type)}${f.semaineNotion?" · "+esc(f.semaineNotion):""}</span></button></li>`).join("")}</ul>`:`<p class="empty">${S.fiches.length?"Aucune fiche ne correspond.":"Les fiches arriveront avec les cartes."}</p>`}`;
+  }
+  host.innerHTML=html;
+  host.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{S.idx=b.dataset.s;renderIndex()});
+  host.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{S.sel=b.dataset.d;show("jour")});
+  host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
+  host.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{S.filt=b.dataset.t;renderIndex()});
+  const inp=$("#lq"); if(inp){ inp.oninput=()=>{S.q=inp.value;renderIndex()}; if(keep){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length)} }
+}
+/* ---------- fiche détaillée ---------- */
+function openFiche(id){
+  const f=fiche(id); if(!f) return; const t=today();
+  let h=`<button class="close" id="closeSheet">← Retour</button>`;
+  if(f.type==="Penseur"){
+    const [fn,ln]=splitName(f.terme);
+    h+=`<div class="idcard"><div class="fn">${esc(fn)}</div><div class="ln">${esc(ln)}</div><div class="meta">${f.dates?`<span>${esc(f.dates)}</span>`:""}${f.pays?`<span>${esc(f.pays)}</span>`:""}${f.oeuvres&&f.oeuvres.length?`<span>${esc(f.oeuvres.join(" · "))}</span>`:""}</div>${f.enUnMot?`<div class="mot">${esc(f.enUnMot)}</div>`:""}</div>`;
+    if(f.memo) h+=`<div class="sec memo"><p class="label">Pour retenir son nom</p><p>${esc(f.memo)}</p></div>`;
+    if((f.theses||[]).length) h+=`<div class="sec"><p class="label">Ce qu'il pense</p><ul class="theses">${f.theses.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+    if((f.citations||[]).length) h+=`<div class="sec"><p class="label">Ce qu'il a dit</p>${f.citations.map(c=>`<div class="cit"><p>« ${esc(c.texte)} »</p><span>${esc(c.source||"")}</span></div>`).join("")}</div>`;
+    if(f.explication) h+=`<div class="sec"><p class="label">Le contexte</p>${paras(f.explication)}</div>`;
+    if((f.dialogue||[]).length) h+=`<div class="sec"><p class="label">Avec qui il dialogue</p><div class="rel">${f.dialogue.map(d=>{const o=fiche(d.id);return `<button ${o?`data-f="${esc(d.id)}"`:"disabled"}><b>${esc(d.relation)}</b>${esc(o?o.terme:d.nom||d.id)}${d.note?" · "+esc(d.note):""}</button>`}).join("")}</div></div>`;
+  } else {
+    h+=`<div class="idcard"><div class="fn">${esc(f.type)}${f.dates?" · "+esc(f.dates):""}</div><div class="ln" style="font-size:36px">${esc(f.terme)}</div>${f.formule?`<div class="mot">${esc(f.formule)}</div>`:""}</div>`;
+    h+=`<div class="sec"><p><b style="font-weight:500">${esc(f.resume)}</b></p>${paras(f.explication)}</div>`;
+    if(f.memo) h+=`<div class="sec memo"><p class="label">Pour retenir</p><p>${esc(f.memo)}</p></div>`;
+  }
+  if((f.popCulture||[]).length) h+=`<div class="sec"><p class="label">Dans les romans, les films, les séries</p><div class="pop">${f.popCulture.map(p=>`<div><i>${esc(p.type||"")}</i><b style="font-weight:500">${esc(p.titre)}</b>${p.texte?" · "+esc(p.texte):""}</div>`).join("")}</div></div>`;
+  const liens=(f.liens||[]).map(fiche).filter(Boolean);
+  if(liens.length) h+=`<div class="sec"><p class="label">Voir aussi</p><div class="row" style="margin-top:0">${liens.map(l=>`<button class="chip" data-f="${esc(l.id)}">${esc(l.terme)}</button>`).join("")}</div></div>`;
+  const e=S.etat[f.id];
+  h+=`<p class="hint sec">${f.semaineNotion?"Vu pendant la semaine « "+esc(f.semaineNotion)+" ». ":""}${e?"Prochaine révision : "+esc(frDate(nextOf(e,t)))+".":""}</p>`;
+  $("#sheetIn").innerHTML=h; $("#sheet").hidden=false; $("#sheet").scrollTop=0; document.body.style.overflow="hidden";
+  $("#closeSheet").onclick=closeSheet;
+  $("#sheetIn").querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
+}
+function closeSheet(){ $("#sheet").hidden=true; document.body.style.overflow="" }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeSheet() });
+
+/* ---------- démarrage ---------- */
+(function(){ const h=location.hash.slice(1); if(VIEWS.includes(h)&&h!=="jour") show(h); else render() })();
+async function getJSON(path){
+  const v=Math.floor(Date.now()/300000);
+  const r=await fetch(path+"?v="+v,{cache:"no-cache"}); if(!r.ok) throw new Error(r.status); return r.json();
+}
+(async()=>{
+  loadLocal();
+  try{
+    const [idx,fi]=await Promise.all([getJSON("data/index.json"),getJSON("data/fiches.json")]);
+    S.cartes=idx.cartes||[]; S.semaines=(idx.semaines||[]).sort((a,b)=>a.numero-b.numero); S.plan={suivantes:idx.aVenir||[],choix:idx.prochaine||null};
+    S.fiches=Object.entries(fi.fiches||{}).map(([id,f])=>({...f,id}));
+    render();
+  }catch(e){ $("#cardHost").innerHTML='<p class="notice">Le Banquet ne s\'est pas chargé. Vérifie ta connexion et recharge la page.</p>' }
+})();
+</script>
+</body>
+</html>
