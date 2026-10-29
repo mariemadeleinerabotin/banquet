@@ -107,7 +107,7 @@ nav.tabs .badge{position:absolute;top:8px;left:calc(50% + 6px);font-size:10px;ba
 .fait .label{color:inherit;opacity:.75;margin:0}
 .fait .big{font-family:var(--display);font-weight:500;font-size:86px;line-height:.9;letter-spacing:-.02em;margin:10px 0 0;font-variant-numeric:lining-nums}
 .fait .leg{font-size:15px;line-height:1.35;opacity:.9;margin:0 0 10px}
-.fait .ft{font-family:var(--display);font-size:24px;line-height:1.15;margin:4px 0 4px}
+.fait .ft{font-family:var(--display);font-size:28px;line-height:1.15;margin:8px 0 6px;text-wrap:balance}
 .fait p.tx{margin:0;font-size:16px;line-height:1.5;opacity:.92}
 .fait .src{font-family:var(--ui);font-size:11.5px;opacity:.65;margin:10px 0 0}
 .defi-head{display:flex;justify-content:space-between;align-items:baseline}
@@ -423,7 +423,7 @@ function avantToi(card){
   if(card.rang===6) return "";
   const d=defiList(card), a=card.aRetenir;
   let h="";
-  if(a&&(a.texte||a.chiffre)) h+=`<div class="block fait"><p class="label">Did you know?</p>${a.chiffre?`<p class="big">${esc(a.chiffre)}</p>${a.legende?`<p class="leg">${esc(a.legende)}</p>`:""}`:""}${a.titre?`<p class="ft">${esc(a.titre)}</p>`:""}${a.texte?`<p class="tx">${esc(a.texte)}</p>`:""}${a.source?`<p class="src">${esc(a.source)}</p>`:""}</div>`;
+  if(a&&(a.titre||a.texte)) h+=`<div class="block fait"><p class="label">Did you know?</p>${a.titre?`<p class="ft">${esc(a.titre)}</p>`:""}${a.texte?`<p class="tx">${esc(a.texte)}</p>`:""}${a.source?`<p class="src">${esc(a.source)}</p>`:""}</div>`;
   if(d.length) h+=`<div class="block"><div class="defi-head"><p class="label">Le défi du jour</p><span class="hint" id="dpos">1 / ${d.length}</span></div><div class="ddeck" id="ddeck">${d.map((q,i)=>`<div class="dcard" data-i="${i}"><span class="n">Question ${i+1}</span><p class="q">${esc(q.question)}</p><div class="opts">${q.options.map((o,j)=>`<button data-j="${j}">${esc(o)}</button>`).join("")}</div><div class="res" hidden></div><button class="btn go" hidden>${i<d.length-1?"Suivante →":"Voir mon score →"}</button></div>`).join("")}<div class="dcard fin" hidden><span class="n" style="color:var(--mark)">Ton score</span><div class="sc" id="dsc"></div><p id="dmsg"></p></div></div></div>`;
   return h;
 }
