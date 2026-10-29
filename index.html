@@ -204,7 +204,8 @@ details.loin p{margin:0 0 12px}
 .wk .n{font-family:var(--display);font-size:20px;color:var(--muted);font-variant-numeric:tabular-nums}
 .wk .nt{font-family:var(--display);font-size:22px;line-height:1.15}
 .wk .qs{font-size:15.5px;color:var(--muted);display:block}
-.dom{font-family:var(--ui);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.dom{display:block;margin-bottom:2px;font-family:var(--ui);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.wk .nt,.up .nt{display:block}
 .wk .days{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0 calc(2.4em + 10px)}
 .chip{font-family:var(--ui);font-size:12.5px;padding:5px 10px;border:1px solid var(--rule);background:var(--sheet);border-radius:999px;text-align:left}
 .chip.on{border-color:var(--accent);color:var(--accent)}
@@ -262,7 +263,8 @@ details.loin p{margin:0 0 12px}
 .kpi{border-top:1px solid var(--rule);padding-top:8px;min-width:0}
 .kpi b{display:block;font-family:var(--display);font-weight:500;font-size:28px;line-height:1.05;font-variant-numeric:tabular-nums}
 .kpi span{font-family:var(--ui);font-size:11.5px;color:var(--muted);line-height:1.3;display:block}
-.plite{margin-top:30px}
+.plite{margin-top:24px}
+.closing{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--rule);margin-top:30px;padding:14px 0 0}
 .pl-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .pl-txt{font-family:var(--ui);font-size:13px;color:var(--muted)}
 .pl-rang{color:var(--ink);font-weight:500}
@@ -317,7 +319,7 @@ details.more summary::-webkit-details-marker{display:none}
   <button role="tab" data-v="jour" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg>Aujourd'hui</button>
   <button role="tab" data-v="reviser" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="12" height="16" rx="1.5"/><path d="M8 20.5h10.5c.6 0 1-.4 1-1V7"/></svg>Réviser<span class="badge" id="due" hidden></span></button>
   <button role="tab" data-v="penseurs" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>Penseurs</button>
-  <button role="tab" data-v="index" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Index</button>
+  <button role="tab" data-v="index" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h9"/></svg>Parcours</button>
 </nav>
 
 <div class="sheet" id="sheet" hidden><div class="in" id="sheetIn"></div></div>
@@ -444,7 +446,8 @@ function renderJour(){
      <textarea id="rep" style="${big?"min-height:170px":""}"></textarea>
      <div class="row"><button class="btn" id="save">Garder ma réponse</button><span class="hint" id="st"></span></div></div>`:""}
    ${card.plusLoin?`<div class="block"><details class="loin"><summary>Pour aller plus loin${card.plusLoin.duree?" · "+esc(card.plusLoin.duree):""}</summary><div class="inner">${card.plusLoin.titre?`<p><b>${esc(card.plusLoin.titre)}</b></p>`:""}${paras(card.plusLoin.paragraphes)}${(card.plusLoin.lectures||[]).length?`<p class="label" style="margin-top:14px">À lire</p><ul class="lectures">${card.plusLoin.lectures.map(l=>`<li><b style="font-weight:500">${esc(l.auteur)}</b>, <i>${esc(l.titre)}</i>${l.note?" · "+esc(l.note):""}</li>`).join("")}</ul>`:""}</div></details></div>`:""}
-   ${others.length?`<div class="block"><p class="label">Les fiches du jour</p><div class="row" style="margin-top:0">${others.map(f=>`<button class="chip" data-f="${esc(f.id)}">${esc(f.terme)}</button>`).join("")}</div></div>`:""}`;
+   ${others.length?`<div class="block"><p class="label">Les fiches du jour</p><div class="row" style="margin-top:0">${others.map(f=>`<button class="chip" data-f="${esc(f.id)}">${esc(f.terme)}</button>`).join("")}</div></div>`:""}
+   ${closingHTML(card)}`;
   const sc=$("#slides"), bars=[...host.querySelectorAll(".bars i")];
   const upd=()=>{const i=Math.round(sc.scrollLeft/sc.clientWidth); bars.forEach((b,k)=>b.classList.toggle("on",k<=i)); $("#pos").textContent=`${i+1} / ${sl.length}`; $("#prev").disabled=i===0; $("#next").disabled=i===sl.length-1};
   sc.addEventListener("scroll",()=>requestAnimationFrame(upd),{passive:true});
@@ -453,6 +456,7 @@ function renderJour(){
   wireQuiz(host,{quiz:card.quiz||[],flashback:card.flashback||[]});
   host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
   wireDefi(host,card);
+  if($("#closing")) $("#closing").onclick=()=>{S.idx="notions";show("index")};
   if($("#rep")){ const r=S.reponses[card.date]||{}; $("#rep").value=r.texte||""; $("#save").onclick=()=>saveRep(card) }
 }
 
@@ -563,6 +567,12 @@ function readCard(card){
   if(card && card.date<=today() && !lues.includes(card.date)){ saveStat({lues:[...lues,card.date].slice(-1000)}); checkBadges() }
 }
 function bumpStat(k,n=1){ saveStat({[k]:stat(k)+n}) }
+function closingHTML(card){
+  if(!card||card.date!==today()) return "";
+  const set=new Set(S.stats.jours||[]), t=today(), days=[...Array(7)].map((_,i)=>addDays(t,i-6)), st=streak();
+  const got=S.stats.badges||{}, neuf=BADGES.filter(b=>got[b.id]===t);
+  return `<button class="closing" id="closing"><span class="pl-row"><span class="pl-txt">Carte du jour lue${st>1?` · ${st} jours d'affilée`:""}</span><span class="dots7">${days.map(d=>`<i class="${set.has(d)?"on":""}"></i>`).join("")}</span></span>${neuf.length?`<span class="pl-txt" style="display:block;margin-top:6px">Nouvelle médaille : ${neuf.map(b=>esc(b.n)).join(", ")}</span>`:""}</button>`;
+}
 function progressHTML(){
   const p=progress(), cur=RANGS[p.r], next=RANGS[p.r+1];
   const pct=next?Math.round((p.xp-cur[0])/(next[0]-cur[0])*100):100;
@@ -617,7 +627,7 @@ function renderReviser(){
      ${tile("quiadit","Qui a dit ça ?","Une phrase, une idée : retrouve son auteur.",M.quiadit,"",!(quotes.length&&P.length>=2))}
      ${tile("nom","Le bon nom","Un portrait en trois traits : mets un nom dessus.",M.nom,"",P.length<2)}
      ${tile("qcm","QCM","Concepts, œuvres, distinctions.",M.qcm,"",!qcm.length)}
-</div>${progressHTML()}${badgesHTML()}`;
+</div>`;
   host.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>startGame(b.dataset.g));
 }
 function optsFrom(correct, P, n=4){
@@ -706,10 +716,11 @@ function renderPenseurs(){
 /* ---------- Index ---------- */
 function renderIndex(){
   const host=$("#v-index"), keep=document.activeElement&&document.activeElement.id==="lq";
-  let html=`<h2 class="page">Index</h2><div class="seg"><button aria-pressed="${S.idx==="notions"}" data-s="notions">Notions</button><button aria-pressed="${S.idx==="fiches"}" data-s="fiches">Toutes les fiches</button></div>`;
+  let html=`<h2 class="page">Parcours</h2><div class="seg"><button aria-pressed="${S.idx==="notions"}" data-s="notions">Notions</button><button aria-pressed="${S.idx==="fiches"}" data-s="fiches">Toutes les fiches</button></div>`;
   if(S.idx==="notions"){
     const sems=[...S.semaines].sort((a,b)=>b.numero-a.numero), cur=semaineCourante(), t=today();
-    html+=`<p class="label" style="margin-top:22px">Déjà parcourues</p>`;
+    html+=progressHTML()+badgesHTML();
+    html+=`<p class="label" style="margin-top:30px">Déjà parcourues</p>`;
     html+= sems.length? sems.map(s=>{const cs=S.cartes.filter(c=>c.semaine===s.id&&c.date<=t).sort((a,b)=>a.rang-b.rang);
       return `<div class="wk"><div class="h"><span class="n">${String(s.numero).padStart(2,"0")}</span><span><span class="dom">${esc(s.domaine)}${cur&&cur.id===s.id?" · en cours":""}</span><span class="nt">${esc(s.notion)}</span><span class="qs">${esc(s.question)}</span></span></div>
        <div class="days">${cs.map(c=>`<button class="chip" data-d="${c.date}">${c.rang}. ${esc(c.titre)}</button>`).join("")}</div></div>`}).join("") : `<p class="empty">Ta première notion apparaîtra ici.</p>`;
