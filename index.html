@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<meta name="theme-color" content="#EEF0EB">
+<meta name="theme-color" content="#EEE6D6">
 <title>Le Banquet</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -16,19 +16,20 @@
 /* Layout : mobile d'abord. Une colonne de lecture, la carte du jour en diapositives à faire glisser, une barre d'onglets fixée en bas. */
 :root{
   padding-top:env(safe-area-inset-top,0px);
-  --paper:#EEF0EB; --sheet:#F8F9F6; --ink:#181C1F; --muted:#5D6661; --rule:#CDD3CC;
-  --accent:#1E5A47; --accent-soft:#DCE7E1; --mark:#9A6B12; --mark-soft:#F1E7CF; --bad:#9B3B2E; --bad-soft:#F2DEDA;
-  --display:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
+  --paper:#EEE6D6; --sheet:#F6F0E4; --ink:#1E1714; --muted:#6E625A; --rule:#D9CDB8;
+  --accent:#5E1B16; --accent-soft:#E7D6C6; --mark:#8C6526; --mark-soft:#EADCC0; --bad:#9B3B2E; --bad-soft:#F0DAD3;
+  --display:"EB Garamond",Garamond,"Times New Roman",serif;
+  --logo:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
   --body:"EB Garamond",Garamond,"Times New Roman",serif;
   --ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --nav-h:64px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#121614; --sheet:#1A1F1C; --ink:#E7EAE5; --muted:#9AA39D; --rule:#2E3532;
-  --accent:#7FC4A8; --accent-soft:#1F3029; --mark:#D9B868; --mark-soft:#332B19; --bad:#E39A8D; --bad-soft:#3A2420; color-scheme:dark}}
+  --paper:#1A1513; --sheet:#231C19; --ink:#EEE6D6; --muted:#A99C8F; --rule:#3A302B;
+  --accent:#D99A8C; --accent-soft:#3A2420; --mark:#D9B868; --mark-soft:#332B19; --bad:#E39A8D; --bad-soft:#3A2420; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --paper:#121614; --sheet:#1A1F1C; --ink:#E7EAE5; --muted:#9AA39D; --rule:#2E3532;
-  --accent:#7FC4A8; --accent-soft:#1F3029; --mark:#D9B868; --mark-soft:#332B19; --bad:#E39A8D; --bad-soft:#3A2420; color-scheme:dark}
+  --paper:#1A1513; --sheet:#231C19; --ink:#EEE6D6; --muted:#A99C8F; --rule:#3A302B;
+  --accent:#D99A8C; --accent-soft:#3A2420; --mark:#D9B868; --mark-soft:#332B19; --bad:#E39A8D; --bad-soft:#3A2420; color-scheme:dark}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -44,10 +45,10 @@ button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:tra
 .ui{font-family:var(--ui)}
 .label{font-family:var(--ui);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:500;margin:0 0 8px}
 .hint{font-family:var(--ui);font-size:13px;color:var(--muted)}
-h2.page{font-family:var(--display);font-weight:500;font-size:32px;line-height:1.1;margin:22px 0 4px}
+h2.page{font-family:var(--display);font-weight:500;font-size:36px;color:var(--accent);line-height:1.1;margin:22px 0 4px}
 
 header.mast{padding-block:18px 2px;display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.mast h1{font-family:var(--display);font-weight:500;font-size:30px;line-height:1;margin:0}
+.mast h1{font-family:var(--logo);font-weight:500;font-size:30px;line-height:1;margin:0}
 .mast h1 i{font-weight:400}
 .mast .sem{font-family:var(--ui);font-size:12px;color:var(--muted);text-align:right}
 
@@ -82,13 +83,13 @@ nav.tabs .badge{position:absolute;top:8px;left:calc(50% + 6px);font-size:10px;ba
 .slides::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100%;scroll-snap-align:start;min-height:390px;padding:22px 22px 26px;display:flex;flex-direction:column;justify-content:center;min-width:0}
 .slide .eyebrow{font-family:var(--ui);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
-.slide h2{font-family:var(--display);font-weight:500;font-size:34px;line-height:1.1;margin:0 0 16px;text-wrap:balance}
+.slide h2{font-family:var(--display);font-weight:500;font-size:36px;line-height:1.08;margin:0 0 16px;text-wrap:balance;color:var(--accent)}
 .slide .accroche{font-size:21px;line-height:1.4;margin:0;font-style:italic}
 .slide p.txt{font-size:20px;line-height:1.5;margin:0}
 .slide .num{font-family:var(--display);font-size:40px;color:var(--rule);line-height:1;margin-bottom:10px}
-.slide.quote{background:var(--ink);color:var(--paper)}
-.slide.quote blockquote{margin:0;font-family:var(--display);font-style:italic;font-size:26px;line-height:1.3}
-.slide.quote cite{display:block;margin-top:18px;font-style:normal;font-family:var(--ui);font-size:13px;opacity:.75}
+.slide.quote{background:var(--sheet);color:var(--accent)}
+.slide.quote blockquote{margin:0;font-family:var(--display);font-style:italic;font-weight:700;font-size:28px;line-height:1.2;letter-spacing:-.01em}
+.slide.quote cite{display:block;margin-top:18px;font-style:normal;font-family:var(--ui);font-size:13px;color:var(--ink);text-align:right}
 .slide.ex .kind{align-self:flex-start;font-family:var(--ui);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border:1px solid var(--mark);color:var(--mark);margin-bottom:14px}
 .slide.ex h3{font-family:var(--display);font-weight:500;font-size:26px;line-height:1.15;margin:0 0 4px}
 .slide.ex .by{font-family:var(--ui);font-size:13px;color:var(--muted);margin:0 0 14px}
