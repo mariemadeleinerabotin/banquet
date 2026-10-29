@@ -250,6 +250,32 @@ details.loin p{margin:0 0 12px}
 .pop i{font-family:var(--ui);font-style:normal;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mark);display:block}
 .notice{font-family:var(--ui);font-size:14px;color:var(--muted);margin:24px 0}
 @media (min-width:700px){ body{font-size:19px} .slide{min-height:420px;padding:30px 34px} .mast h1{font-size:32px} }
+
+/* progression et accomplissements */
+.prog-card{background:var(--sheet);border:1px solid var(--rule);padding:20px 18px;margin-top:16px}
+.prog-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.rang{font-family:var(--display);font-weight:500;font-size:30px;line-height:1;color:var(--accent)}
+.xp{font-family:var(--ui);font-size:12.5px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.bar{height:6px;background:var(--rule);border-radius:3px;margin:12px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
+.kpi{border-top:1px solid var(--rule);padding-top:8px;min-width:0}
+.kpi b{display:block;font-family:var(--display);font-weight:500;font-size:28px;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi span{font-family:var(--ui);font-size:11.5px;color:var(--muted);line-height:1.3;display:block}
+.days28{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;margin-top:16px}
+.days28 i{aspect-ratio:1;border-radius:2px;background:var(--rule);max-width:100%}
+.days28 i.on{background:var(--accent)}
+.days28 i.today{outline:1.5px solid var(--ink);outline-offset:1px}
+.badges{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.badge-it{background:var(--sheet);border:1px solid var(--rule);padding:14px 8px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;min-width:0}
+.medal{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:22px;font-style:italic;border:1.5px dashed var(--rule);color:var(--muted)}
+.badge-it.won .medal{background:var(--accent);border:2px solid var(--mark);color:var(--sheet);font-style:normal}
+.badge-it .bn{font-family:var(--display);font-size:16px;line-height:1.15}
+.badge-it .bd{font-family:var(--ui);font-size:11px;color:var(--muted);line-height:1.3}
+.badge-it:not(.won) .bn{color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--ink);color:var(--paper);padding:12px 16px;font-family:var(--ui);font-size:14px;max-width:min(92vw,420px);display:flex;gap:10px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.toast .medal{width:34px;height:34px;font-size:15px;background:var(--accent);border:2px solid var(--mark);color:var(--sheet);font-style:normal;flex:none}
+@media (max-width:360px){.badges{grid-template-columns:repeat(2,1fr)}}
 @media (prefers-reduced-motion:no-preference){.qcard,.deck{animation:rise .3s ease-out both}@keyframes rise{from{transform:translateY(6px);opacity:.6}to{transform:none;opacity:1}}}
 </style>
 </head>
@@ -311,8 +337,8 @@ function dueFiches(){ const t=today(); return S.fiches.filter(f=>{const e=S.etat
 function anciennes(){ const t=today(); return S.fiches.filter(f=>{const e=S.etat[f.id]; return e && e.vu && daysBetween(e.vu,t)>=7}) }
 function grandeDue(){ const last=S.stats.derniereGrande; return anciennes().length>=3 && (!last || daysBetween(last,today())>=7) }
 const KEY="banquet.progres.v1";
-function loadLocal(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||"{}"); S.etat=d.etat||{}; S.stats={derniereGrande:d.derniereGrande||null}; S.reponses=d.reponses||{} }catch(e){} }
-function saveLocal(){ try{ localStorage.setItem(KEY,JSON.stringify({etat:S.etat,derniereGrande:S.stats.derniereGrande||null,reponses:S.reponses})) }catch(e){} }
+function loadLocal(){ try{ const d=JSON.parse(localStorage.getItem(KEY)||"{}"); S.etat=d.etat||{}; S.stats=d.stats||{derniereGrande:d.derniereGrande||null}; S.reponses=d.reponses||{} }catch(e){} }
+function saveLocal(){ try{ localStorage.setItem(KEY,JSON.stringify({etat:S.etat,stats:S.stats,reponses:S.reponses})) }catch(e){} }
 function writeProg(o){ saveLocal() }
 function markSeen(card){
   const t=today(), add={};
@@ -381,6 +407,7 @@ function renderJour(){
   if(!S.full[S.sel]){ loadCard(S.sel); return }
   const card=S.full[S.sel];
   if(card.date<=t) markSeen(card);
+  markActive(card); readCard(card);
   if(host.dataset.d===card.date && host.dataset.m===String(card.maj||"")+S.fiches.length){ refreshReply(card); return }
   host.dataset.d=card.date; host.dataset.m=String(card.maj||"")+S.fiches.length;
   const sl=slidesFor(card);
@@ -437,7 +464,7 @@ function wireDefi(host,card){
       if(!good) b.classList.add("ko");
       const r=c.querySelector(".res"); r.hidden=false; r.innerHTML=`<b style="color:${good?"var(--accent)":"var(--bad)"}">${good?"Bien vu":"Raté"}</b> · ${esc(q.explication||"")}`;
       c.querySelector(".go").hidden=false;
-      if(i===d.length-1){ $("#dsc").textContent=`${ok}/${d.length}`; $("#dmsg").textContent= ok===d.length?"Sans faute. Tu peux briller ce soir.":"Les fiches du jour reviendront dans tes révisions." }
+      if(i===d.length-1){ const o={defis:stat("defis")+1}; if(ok===d.length) o.sansFaute=stat("sansFaute")+1; saveStat(o); checkBadges(); $("#dsc").textContent=`${ok}/${d.length}`; $("#dmsg").textContent= ok===d.length?"Sans faute. Tu peux briller ce soir.":"Les fiches du jour reviendront dans tes révisions." }
     });
     c.querySelector(".go").onclick=()=>go(i+1);
   });
@@ -456,6 +483,89 @@ async function loadCard(date){
   catch(e){ S.loading=null; $("#cardHost").innerHTML='<p class="notice">La carte ne s\'est pas chargée. Vérifie ta connexion et recharge la page.</p>' }
 }
 
+
+/* ---------- progression et accomplissements ---------- */
+const RANGS=[[0,"Convive"],[15,"Disciple"],[45,"Exégète"],[100,"Philosophe"],[200,"Sage"],[400,"Hôte du Banquet"]];
+function stat(k){ return S.stats[k]||0 }
+function streak(){
+  const set=new Set(S.stats.jours||[]); let d=today(); if(!set.has(d)) d=addDays(d,-1);
+  let n=0; while(set.has(d)){ n++; d=addDays(d,-1) } return n;
+}
+function bestStreak(){
+  const js=[...(S.stats.jours||[])].sort(); let best=0,cur=0,prev=null;
+  js.forEach(d=>{ cur = prev && addDays(prev,1)===d ? cur+1 : 1; best=Math.max(best,cur); prev=d }); return best;
+}
+function progress(){
+  const vus=Object.keys(S.etat).filter(id=>fiche(id));
+  const niv=vus.reduce((a,id)=>a+(S.etat[id].niveau||0),0);
+  const ancres=vus.filter(id=>(S.etat[id].niveau||0)>=3).length;
+  const penseursVus=vus.filter(id=>(fiche(id)||{}).type==="Penseur").length;
+  const xp=vus.length+niv*2+stat("parties")*2+stat("defis")+stat("grandes")*5;
+  let r=0; RANGS.forEach((x,i)=>{ if(xp>=x[0]) r=i });
+  return {vus:vus.length,niv,ancres,penseursVus,xp,r};
+}
+function notionsBouclees(){
+  const lues=new Set(S.stats.lues||[]);
+  return S.semaines.filter(s=>{ const cs=S.cartes.filter(c=>c.semaine===s.id); return cs.length>=7 && cs.every(c=>lues.has(c.date)) }).length;
+}
+const BADGES=[
+  {id:"premier",m:"I",n:"Premier couvert",d:"Lire ta première carte",ok:p=>(S.stats.lues||[]).length>=1},
+  {id:"serie3",m:"3",n:"Pilier de table",d:"3 jours d'affilée",ok:p=>bestStreak()>=3},
+  {id:"serie7",m:"7",n:"Une semaine à table",d:"7 jours d'affilée",ok:p=>bestStreak()>=7},
+  {id:"sansfaute",m:"✓",n:"Sans faute",d:"Un défi ou un jeu parfait",ok:p=>stat("sansFaute")>=1},
+  {id:"gourmande",m:"V",n:"Bon appétit",d:"5 parties de révision",ok:p=>stat("parties")>=5},
+  {id:"dix",m:"X",n:"Dix convives",d:"10 penseurs rencontrés",ok:p=>p.penseursVus>=10},
+  {id:"grande",m:"G",n:"Grande révision",d:"Ta première grande révision",ok:p=>stat("grandes")>=1},
+  {id:"notion",m:"N",n:"Notion bouclée",d:"Les 7 cartes d'une semaine",ok:p=>notionsBouclees()>=1},
+  {id:"marbre",m:"M",n:"Gravé dans le marbre",d:"Une fiche retenue 3 fois de suite",ok:p=>p.ancres>=1},
+  {id:"mois",m:"30",n:"Un mois de banquet",d:"30 jours de lecture",ok:p=>(S.stats.jours||[]).length>=30},
+  {id:"biblio",m:"L",n:"Bibliothèque",d:"50 fiches dans ta mémoire",ok:p=>p.vus>=50},
+  {id:"quatre",m:"IV",n:"Quatre notions",d:"4 notions bouclées",ok:p=>notionsBouclees()>=4}
+];
+function checkBadges(){
+  if(!S.ready) return;
+  const p=progress(), got=Object.assign({},S.stats.badges||{}), nouveaux=[];
+  BADGES.forEach(b=>{ if(!got[b.id] && b.ok(p)){ got[b.id]=today(); nouveaux.push(b) } });
+  if(nouveaux.length){ saveStat({badges:got}); nouveaux.forEach((b,i)=>setTimeout(()=>toast(b),i*2600)) }
+}
+function toast(b){
+  const t=document.createElement("div"); t.className="toast"; t.setAttribute("role","status");
+  t.innerHTML=`<span class="medal">${esc(b.m)}</span><span><b style="font-weight:600">Nouvel accomplissement</b><br>${esc(b.n)}</span>`;
+  document.body.appendChild(t); setTimeout(()=>t.remove(),2400);
+}
+function markActive(card){
+  if(!S.ready) return;
+  if(!card || card.date!==today()) return;
+  const t=today(), jours=S.stats.jours||[], lues=S.stats.lues||[], o={};
+  if(!jours.includes(t)) o.jours=[...jours,t].slice(-400);
+  if(!lues.includes(card.date)) o.lues=[...lues,card.date].slice(-1000);
+  if(Object.keys(o).length){ saveStat(o); checkBadges() }
+}
+function readCard(card){
+  if(!S.ready) return;
+  const lues=S.stats.lues||[];
+  if(card && card.date<=today() && !lues.includes(card.date)){ saveStat({lues:[...lues,card.date].slice(-1000)}); checkBadges() }
+}
+function bumpStat(k,n=1){ saveStat({[k]:stat(k)+n}) }
+function progressHTML(){
+  const p=progress(), cur=RANGS[p.r], next=RANGS[p.r+1];
+  const pct=next?Math.round((p.xp-cur[0])/(next[0]-cur[0])*100):100;
+  const set=new Set(S.stats.jours||[]), t=today();
+  const days=[...Array(28)].map((_,i)=>addDays(t,i-27));
+  return `<div class="prog-card">
+    <div class="prog-top"><div><p class="label" style="margin:0 0 6px">Ton rang</p><div class="rang">${esc(cur[1])}</div></div><div class="xp">${p.xp} points${next?`<br>${next[0]-p.xp} avant ${esc(next[1])}`:""}</div></div>
+    <div class="bar"><i style="width:${Math.max(3,pct)}%"></i></div>
+    <div class="kpis"><div class="kpi"><b>${streak()}</b><span>jour${streak()>1?"s":""} d'affilée</span></div><div class="kpi"><b>${p.penseursVus}</b><span>penseur${p.penseursVus>1?"s":""} rencontré${p.penseursVus>1?"s":""}</span></div><div class="kpi"><b>${p.ancres}</b><span>fiche${p.ancres>1?"s":""} bien ancrée${p.ancres>1?"s":""}</span></div></div>
+    <div class="days28" title="Tes 28 derniers jours">${days.map(d=>`<i class="${set.has(d)?"on":""} ${d===t?"today":""}"></i>`).join("")}</div>
+    <p class="hint" style="margin:8px 0 0">Tes 4 dernières semaines au banquet.</p>
+  </div>`;
+}
+function badgesHTML(){
+  const got=S.stats.badges||{}, nb=Object.keys(got).length;
+  return `<div class="block"><div class="defi-head"><p class="label">Accomplissements</p><span class="hint">${nb} / ${BADGES.length}</span></div>
+    <div class="badges">${BADGES.map(b=>`<div class="badge-it ${got[b.id]?"won":""}"><span class="medal">${esc(b.m)}</span><span class="bn">${esc(b.n)}</span><span class="bd">${got[b.id]?"Obtenu le "+esc(new Date(got[b.id]+"T12:00:00Z").toLocaleDateString("fr-FR",{day:"numeric",month:"short",timeZone:"UTC"})):esc(b.d)}</span></div>`).join("")}</div></div>`;
+}
+
 /* ---------- Réviser : jeux ---------- */
 function pools(){
   const P=penseurs();
@@ -468,13 +578,15 @@ function renderReviser(){
   const gd=grandeDue();
   host.innerHTML=`<h2 class="page">Réviser</h2><p class="hint">Quelques minutes, une fois par jour. Ce que tu rates revient le lendemain ; ce que tu sais revient de plus en plus tard. Ta progression reste sur ce téléphone.</p>
 
-   <div class="games">
+   ${progressHTML()}
+   <p class="label" style="margin-top:24px">Les jeux</p>
+   <div class="games" style="margin-top:0">
      <button class="game wide" data-g="grande" ${old.length<3?"disabled":""}><span class="gt">La grande révision</span><span class="gd">Dix questions mêlées sur tout ce que tu as vu il y a plus d'une semaine.</span><span class="gc">${old.length<3?"Disponible à partir de la semaine 2":gd?"À faire cette semaine":"Faite le "+esc(frDate(S.stats.derniereGrande))+" · rejouer"}</span></button>
      <button class="game" data-g="cartes" ${due.length?"":"disabled"}><span class="gt">Les cartes</span><span class="gd">Retourne la carte, dis si tu savais.</span><span class="gc">${due.length?due.length+" à revoir":"Rien à revoir aujourd'hui"}</span></button>
      <button class="game" data-g="quiadit" ${quotes.length&&P.length>=2?"":"disabled"}><span class="gt">Qui a dit ça ?</span><span class="gd">Une phrase, une idée : retrouve son auteur.</span><span class="gc">${quotes.length} phrases</span></button>
      <button class="game" data-g="nom" ${P.length>=2?"":"disabled"}><span class="gt">Le bon nom</span><span class="gd">Un portrait en trois traits : mets un nom dessus.</span><span class="gc">${P.length} penseurs</span></button>
      <button class="game" data-g="qcm" ${qcm.length?"":"disabled"}><span class="gt">QCM</span><span class="gd">Concepts, œuvres, distinctions.</span><span class="gc">${qcm.length} questions</span></button>
-   </div>`;
+   </div>${badgesHTML()}`;
   host.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>startGame(b.dataset.g));
 }
 function optsFrom(correct, P, n=4){
@@ -509,7 +621,7 @@ function renderGame(){
   const total=G.g==="cartes"?G.cards.length:G.qs.length;
   if(G.i>=total){
     host.innerHTML=`<div class="play"><div class="score"><p class="label">Terminé</p><div class="big">${G.score}<span style="font-size:.4em;color:var(--muted)"> / ${total}</span></div><p>${G.score===total?"Sans faute.":G.score>=total*0.7?"Solide. Les ratées reviendront demain.":"Les ratées reviendront demain : c'est comme ça que ça rentre."}</p><div class="row" style="justify-content:center"><button class="btn" id="again">Rejouer</button><button class="btn ghost" id="back">Retour</button></div></div></div>`;
-    if(G.g==="grande") saveStat({derniereGrande:today()});
+    if(!G.done){ G.done=true; const o={parties:stat("parties")+1}; if(G.score===total) o.sansFaute=stat("sansFaute")+1; if(G.g==="grande"){ o.derniereGrande=today(); o.grandes=stat("grandes")+1 } saveStat(o); checkBadges() }
     $("#again").onclick=()=>startGame(G.g); $("#back").onclick=()=>{S.game=null;renderReviser()}; return;
   }
   let body="";
@@ -626,7 +738,7 @@ async function getJSON(path){
   const r=await fetch(path+"?v="+v,{cache:"no-cache"}); if(!r.ok) throw new Error(r.status); return r.json();
 }
 (async()=>{
-  loadLocal();
+  loadLocal(); S.ready=true;
   try{
     const [idx,fi]=await Promise.all([getJSON("data/index.json"),getJSON("data/fiches.json")]);
     S.cartes=idx.cartes||[]; S.semaines=(idx.semaines||[]).sort((a,b)=>a.numero-b.numero); S.plan={suivantes:idx.aVenir||[],choix:idx.prochaine||null};
