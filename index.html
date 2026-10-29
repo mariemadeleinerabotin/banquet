@@ -322,6 +322,10 @@ details.more summary::-webkit-details-marker{display:none}
 .toast .medal{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:12px;background:var(--accent);color:var(--on-accent);flex:none}
 @media (min-width:700px){ body{font-size:17px} .slide{min-height:400px;padding:32px 34px} }
 @media (prefers-reduced-motion:no-preference){.qcard,.deck{animation:rise .3s ease-out both}@keyframes rise{from{transform:translateY(6px);opacity:.6}to{transform:none;opacity:1}}}
+.week button.done .dot{background:var(--sheet);color:var(--accent);border-color:var(--accent)}
+.week button.on.done .dot{background:var(--accent);color:var(--on-accent)}
+.chip.lu{color:var(--muted)}
+.closing .btn{margin-top:0}
 </style>
 </head>
 <body>
@@ -388,7 +392,17 @@ function hk(t){ let h=0; for(const c of String(t)) h=(h*31+c.charCodeAt(0))|0; r
 const fiche = id => S.fiches.find(f=>f.id===id);
 const penseurs = () => S.fiches.filter(f=>f.type==="Penseur");
 function currentCard(){ const t=today(); return S.cartes.filter(c=>c.date<=t).sort((a,b)=>b.date.localeCompare(a.date))[0] || null }
-function semaineCourante(){ const c=S.cartes.find(c=>c.date===S.sel)||currentCard(); return c?S.semaines.find(s=>s.id===c.semaine):S.semaines[S.semaines.length-1] }
+function semaineCourante(){ const c=S.cartes.find(c=>c.date===S.sel); return c?S.semaines.find(s=>s.id===c.semaine):maNotion() }
+/* parcours personnel : chacun suit une notion à son rythme, du jour 1 au jour 7 */
+const publiees = id => S.cartes.filter(c=>c.semaine===id && c.date<=today()).sort((a,b)=>a.rang-b.rang);
+const luesDe = id => publiees(id).filter(c=>isRead(c));
+const semsAsc = () => [...S.semaines].sort((a,b)=>a.numero-b.numero);
+function maNotion(){
+  const id=S.stats.notion; const choisie=id&&S.semaines.find(s=>s.id===id); if(choisie) return choisie;
+  const ss=semsAsc(); return ss.find(s=>publiees(s.id).some(c=>!isRead(c))) || ss[ss.length-1] || null;
+}
+function prochaineCarte(sem){ return sem ? (publiees(sem.id).find(c=>!isRead(c))||null) : null }
+function choisirNotion(id){ saveStat({notion:id}); S.sel=null; $("#cardHost").dataset.d=""; show("jour") }
 const nextOf = (e,t) => e.prochaine || addDays(e.vu||t,2);
 function dueFiches(){ const t=today(); return S.fiches.filter(f=>{const e=S.etat[f.id]; return e && nextOf(e,t)<=t}).sort((a,b)=>nextOf(S.etat[a.id],t).localeCompare(nextOf(S.etat[b.id],t))) }
 function nextDueDate(){ const t=today(); const ds=S.fiches.map(f=>S.etat[f.id]).filter(Boolean).map(e=>nextOf(e,t)).filter(d=>d>t).sort(); return ds[0]||null }
@@ -423,7 +437,8 @@ function popLayer(fallback){ if(PLATFORM.useHistory && history.state && history.
 
 function render(){
   const sem=semaineCourante();
-  $("#sem").innerHTML = sem ? `Semaine ${sem.numero}<br><b>${esc(sem.notion)}</b>` : "Une notion par semaine";
+  const nl=sem?luesDe(sem.id).length:0;
+  $("#sem").innerHTML = sem ? `${esc(sem.domaine||"Notion")}<br><b>${esc(sem.notion)}</b> · ${nl}/7` : "Une notion par semaine";
   const n=dueFiches().length + (grandeDue()?1:0); $("#due").hidden=!n; $("#due").textContent=n;
   if(S.view==="jour") renderJour();
   if(S.view==="reviser" && !S.game) renderReviser();
@@ -433,15 +448,18 @@ function render(){
 
 /* ---------- accueil d'un nouveau visiteur ---------- */
 const INTRO_KEY="banquet.intro.v1";
-function howHTML(){
-  return `<p>Chaque matin vers 7h, une nouvelle carte : une notion par semaine, racontée en 7 jours. Tout le monde lit la même.</p>
+function howHTML(court){
+  return `<p>Une notion de philosophie ou de littérature, racontée en 7 cartes courtes. Tu commences au jour 1 et tu avances à ton rythme. Une nouvelle notion s'ajoute chaque semaine.</p>
     <p>${esc(PLATFORM.txtProg)}</p>
-    <p>Réviser te propose de petits jeux. Ce que tu rates revient le lendemain ; ce que tu sais revient de plus en plus tard.</p>
-    ${PLATFORM.install?`<details class="howto"><summary>Ajouter Le Banquet à l'écran d'accueil</summary><p><b>iPhone</b> : dans Safari, touche Partager, puis « Sur l'écran d'accueil ».</p><p><b>Android</b> : dans Chrome, touche ⋮, puis « Ajouter à l'écran d'accueil ».</p></details>`:""}`;
+    ${court?"":`<p>Les 7 cartes : une question, une thèse, une contre-thèse, un roman, aujourd'hui, à toi, la synthèse. Tu choisis tes notions dans Parcours.</p><p>Réviser te propose de petits jeux. Ce que tu rates revient le lendemain ; ce que tu sais revient de plus en plus tard.</p>`}
+    ${PLATFORM.install?`<details class="howto"><summary>Ajouter Le Banquet à l'écran d'accueil</summary><p>C'est aussi ce qui protège ta progression : sur iPhone, Safari efface les données d'un site qu'on n'a pas ouvert depuis 7 jours, sauf s'il est sur l'écran d'accueil.</p><p><b>iPhone</b> : dans Safari, touche Partager, puis « Sur l'écran d'accueil ».</p><p><b>Android</b> : dans Chrome, touche ⋮, puis « Ajouter à l'écran d'accueil ».</p></details>`:""}`;
 }
-function introHTML(){
+function introHTML(sem){
   if(lsGet(INTRO_KEY)) return "";
-  return `<div class="note intro" id="intro"><p class="label" style="color:var(--accent)">Bienvenue au Banquet</p>${howHTML()}<div class="row"><button class="btn ghost" id="introOk">C'est noté</button></div></div>`;
+  const debut = sem && !luesDe(sem.id).length;
+  return `<div class="note intro" id="intro"><p class="label" style="color:var(--accent)">Bienvenue au Banquet</p>${howHTML(true)}
+    ${debut?`<p><b>Tu commences par « ${esc(sem.notion)} », au jour 1.</b></p>`:""}
+    <div class="row"><button class="btn" id="introOk">${debut?"C'est parti":"C'est noté"}</button>${S.semaines.length>1?`<button class="btn ghost" id="introPick">Choisir une autre notion</button>`:""}</div></div>`;
 }
 
 /* ---------- Aujourd'hui ---------- */
@@ -475,28 +493,34 @@ function wireQuiz(host, lists){
 function weekHTML(sem){
   const t=today();
   return ETAPES.map((e,i)=>{
-    const d=addDays(sem.debut,i), c=S.cartes.find(x=>x.semaine===sem.id&&x.rang===i+1), ok=c&&c.date<=t;
-    const lab=d===t?"auj.":JOURS_C[new Date(d+"T12:00:00Z").getUTCDay()];
-    return `<button class="${ok?"has":"future"} ${c&&c.date===S.sel?"on":""}" data-d="${ok?c.date:""}" data-r="${i+1}" data-day="${d}" aria-label="Jour ${i+1}, ${esc(e)}, ${esc(frDate(d))}"><span class="dot">${i+1}</span><span class="lab">${lab}</span></button>`}).join("");
+    const c=S.cartes.find(x=>x.semaine===sem.id&&x.rang===i+1), ok=c&&c.date<=t, lu=ok&&isRead(c);
+    const lab=lu?"lue":ok?"à lire":"bientôt";
+    return `<button class="${ok?"has":"future"} ${lu?"done":""} ${c&&c.date===S.sel?"on":""}" data-d="${ok?c.date:""}" data-r="${i+1}" data-day="${addDays(sem.debut,i)}" aria-label="Jour ${i+1}, ${esc(e)}, ${lab}"><span class="dot">${lu?"✓":i+1}</span><span class="lab">${lab}</span></button>`}).join("");
 }
 function renderJour(){
-  const cur=currentCard(); if(!S.sel&&cur) S.sel=cur.date;
-  const sem=semaineCourante(), t=today();
+  const t=today(); let sem=semaineCourante();
+  if(!S.sel || !S.cartes.find(c=>c.date===S.sel)){
+    const mine=maNotion(), nx=prochaineCarte(mine), lus=mine?luesDe(mine.id):[];
+    S.sel = nx ? nx.date : (lus.length ? lus[lus.length-1].date : (currentCard()||{}).date || null);
+    sem=semaineCourante();
+  }
   const wk=$("#week");
   if(sem){
     wk.innerHTML=weekHTML(sem);
     wk.querySelectorAll("button").forEach(b=>b.onclick=()=>{
       if(b.dataset.d){ $("#weekHint").textContent=""; S.sel=b.dataset.d; render(); return }
       const r=+b.dataset.r, sujet=sujetDu(sem,r);
-      $("#weekHint").textContent=`Jour ${r} · ${ETAPES[r-1]} : la carte arrive ${frJour(b.dataset.day)} vers 7h${sujet?". Au programme : "+sujet+".":"."}`.replace(/ ([?!;:])/g,NNBSP+"$1");
+      $("#weekHint").textContent=`Jour ${r} · ${ETAPES[r-1]} : cette carte sera publiée ${frJour(b.dataset.day)} vers 7h${sujet?". Au programme : "+sujet+".":"."}`.replace(/ ([?!;:])/g,NNBSP+"$1");
     });
   } else wk.innerHTML="";
-  let top=introHTML();
-  if(cur && cur.date<t && S.sel===cur.date) top+=`<p class="hint" style="margin:14px 0 0">La carte d'aujourd'hui arrive vers 7h. En attendant, relis celle-ci ou fais un tour dans Réviser.</p>`;
+  let top=introHTML(sem);
+  if(sem && S.stats.notion!==sem.id && S.semaines.length>1 && lsGet(INTRO_KEY) && sem.id!==(maNotion()||{}).id) top+=`<div class="note banner"><p>Tu relis « ${esc(sem.notion)} ».</p><button class="btn ghost" id="suivre">En faire ma notion</button></div>`;
   if(grandeDue()) top+=`<div class="note banner"><p><b>Grande révision de la semaine.</b> Dix questions sur ce que tu as vu il y a plus d'une semaine.</p><button class="btn" id="goGrande">Jouer</button></div>`;
   $("#bannerHost").innerHTML=top;
   if($("#goGrande")) $("#goGrande").onclick=()=>{show("reviser");startGame("grande")};
-  if($("#introOk")) $("#introOk").onclick=()=>{ lsSet(INTRO_KEY,"1"); $("#intro").remove() };
+  if($("#introOk")) $("#introOk").onclick=()=>{ lsSet(INTRO_KEY,"1"); if(sem&&!S.stats.notion) saveStat({notion:sem.id}); $("#intro").remove() };
+  if($("#introPick")) $("#introPick").onclick=()=>{ lsSet(INTRO_KEY,"1"); S.idx="notions"; show("index"); setTimeout(()=>{const n=$("#notions"); if(n) n.scrollIntoView({block:"start"})},50) };
+  if($("#suivre")) $("#suivre").onclick=()=>choisirNotion(sem.id);
   if(!S.cartes.find(c=>c.date===S.sel)) return;
   const host=$("#cardHost");
   const card=PLATFORM.fullCard(S.sel); if(!card) return;
@@ -510,7 +534,7 @@ function renderJour(){
   if(card.synthese) extra+=`<div class="block"><p class="label">Qui pense quoi</p><div class="duel">${(card.synthese.positions||[]).map(p=>`<div class="pos"><b>${esc(p.qui)}</b>${esc(p.these)}</div>`).join("")}</div>${card.synthese.fil?`<p style="margin-top:12px">${esc(card.synthese.fil)}</p>`:""}</div>`;
   if(card.quiz&&card.quiz.length) extra+=`<div class="block"><p class="label">Le quiz de la semaine</p>${quizHTML(card.quiz,"quiz")}</div>`;
   if(card.flashback&&card.flashback.length) extra+=`<div class="block"><p class="label">Retour en arrière</p><p class="hint" style="margin:-4px 0 12px">Des questions sur les semaines passées.</p>${quizHTML(card.flashback,"flashback")}</div>`;
-  host.innerHTML=`<div class="deck"><div class="bars" aria-hidden="true">${sl.map((_,i)=>`<i class="${i===0?"on":""}"></i>`).join("")}</div><div class="slides" id="slides" role="region" aria-roledescription="carrousel" aria-label="La carte du jour">${sl.join("")}</div>
+  host.innerHTML=`<div class="deck"><div class="bars" aria-hidden="true">${sl.map((_,i)=>`<i class="${i===0?"on":""}"></i>`).join("")}</div><div class="slides" id="slides" role="region" aria-roledescription="carrousel" aria-label="La carte">${sl.join("")}</div>
      <div class="navbtns"><button id="prev" disabled>← Précédent</button><span class="hint" id="pos" aria-live="polite">1 / ${sl.length}</span><button id="next">Suivant →</button></div></div>
    ${ppl.length?`<div class="block"><p class="label">Les penseurs du jour</p><div class="people">${ppl.map(pcard).join("")}</div></div>`:""}
    ${extra}
@@ -527,7 +551,7 @@ function renderJour(){
   wireQuiz(host,{quiz:card.quiz||[],flashback:card.flashback||[]});
   host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
   wireDefi(host,card,sl.length);
-  wireClosing();
+  wireClosing(card);
   if(card.rang===6) PLATFORM.wireToi(card);
 }
 
@@ -536,22 +560,35 @@ function isRead(card){ return (S.stats.lues||[]).includes(card.date) }
 function finishReading(card,nSlides){
   if(!S.ready || !card || card.date>today() || isRead(card)) return;
   const t=today(), o={lues:[...(S.stats.lues||[]),card.date].slice(-1000)};
-  if(card.date===t && !(S.stats.jours||[]).includes(t)) o.jours=[...(S.stats.jours||[]),t].slice(-400);
+  if(!(S.stats.jours||[]).includes(t)) o.jours=[...(S.stats.jours||[]),t].slice(-400);
+  if(!S.stats.notion) o.notion=card.semaine;
   saveStat(o); checkBadges();
-  const h=$("#closingHost"); if(h){ h.innerHTML=closingHTML(card,nSlides); wireClosing() }
+  const h=$("#closingHost"); if(h){ h.innerHTML=closingHTML(card,nSlides); wireClosing(card) }
+  const wk=$("#week"), sem=S.semaines.find(x=>x.id===card.semaine); if(wk&&sem){ wk.innerHTML=weekHTML(sem); }
+  
 }
-function wireClosing(){ const c=$("#closing"); if(c) c.onclick=()=>{S.idx="notions";show("index")} }
+function wireClosing(card){
+  const nx=$("#goNext"); if(nx) nx.onclick=()=>{ S.sel=nx.dataset.d; window.scrollTo({top:0,behavior:SMOOTH()}); render() };
+  const pk=$("#goPick"); if(pk) pk.onclick=()=>{ S.idx="notions"; show("index"); setTimeout(()=>{const n=$("#notions"); if(n) n.scrollIntoView({block:"start"})},50) };
+  const pr=$("#goParcours"); if(pr) pr.onclick=()=>{ S.idx="notions"; show("index") };
+}
 function closingHTML(card,nSlides){
-  if(!card||card.date!==today()) return "";
+  if(!card) return "";
   const set=new Set(S.stats.jours||[]), t=today(), days=[...Array(7)].map((_,i)=>addDays(t,i-6)), st=streak();
   const dots=`<span class="dots7" aria-hidden="true">${days.map(d=>`<i class="${set.has(d)?"on":""}"></i>`).join("")}</span>`;
   if(!isRead(card)){
     const nd=defiList(card).length;
-    return `<div class="closing" style="cursor:default"><span class="pl-row"><span class="pl-txt">${plur(nSlides,"diapositive")}${nd?" · "+plur(nd,"question"):""} · la carte compte quand tu arrives au bout</span>${dots}</span></div>`;
+    return `<div class="closing"><span class="pl-row"><span class="pl-txt">${plur(nSlides,"diapositive")}${nd?" · "+plur(nd,"question"):""} · la carte compte quand tu arrives au bout</span>${dots}</span></div>`;
   }
   const got=S.stats.badges||{}, neuf=BADGES.filter(b=>got[b.id]===t);
-  const sem=S.semaines.find(s=>s.id===card.semaine), dem=card.rang<7?sujetDu(sem,card.rang+1):"";
-  return `<button class="closing" id="closing"><span class="pl-row"><span class="pl-txt">Carte du jour lue${st>1?` · ${st} jours d'affilée`:""}</span>${dots}</span>${neuf.length?`<span class="pl-txt" style="display:block;margin-top:6px">Nouvelle médaille : ${neuf.map(b=>esc(b.n)).join(", ")}</span>`:""}${dem?`<span class="pl-txt" style="display:block;margin-top:6px">Demain : ${esc(dem)}</span>`:""}</button>`;
+  const sem=S.semaines.find(s=>s.id===card.semaine);
+  const suiv=S.cartes.find(c=>c.semaine===card.semaine&&c.rang===card.rang+1);
+  let next="";
+  if(suiv && suiv.date<=t && !isRead(suiv)) next=`<button class="btn ghost" id="goNext" data-d="${suiv.date}">Carte suivante : jour ${suiv.rang}</button>`;
+  else if(suiv && suiv.date>t) next=`<p class="pl-txt" style="margin:0">La suite, jour ${suiv.rang}${sujetDu(sem,suiv.rang)?" ("+esc(sujetDu(sem,suiv.rang))+")":""}, arrive ${esc(frJour(suiv.date))} vers 7h.</p>`;
+  else if(!suiv && card.rang<7){ const d=addDays(sem.debut,card.rang); next=`<p class="pl-txt" style="margin:0">La suite arrive ${esc(frJour(d))} vers 7h.</p>` }
+  else if(sem && luesDe(sem.id).length>=7) next=`<p class="pl-txt" style="margin:0 0 8px">Tu as bouclé « ${esc(sem.notion)} ».</p><button class="btn ghost" id="goPick">Choisir ma prochaine notion</button>`;
+  return `<div class="closing"><span class="pl-row"><span class="pl-txt">Carte lue${st>1?` · ${st} jours d'affilée`:""}</span>${dots}</span>${neuf.length?`<p class="pl-txt" style="margin:6px 0 0">Nouvelle médaille : ${neuf.map(b=>esc(b.n)).join(", ")}</p>`:""}<div style="margin-top:12px">${next}</div></div>`;
 }
 
 function defiList(card){
@@ -805,12 +842,15 @@ function renderIndex(){
   if(S.idx==="notions"){
     const sems=[...S.semaines].sort((a,b)=>b.numero-a.numero), cur=semaineCourante(), t=today();
     html+=progressHTML()+badgesHTML();
-    html+=`<p class="label" style="margin-top:32px">Déjà parcourues</p>`;
-    html+= sems.length? sems.map(s=>{const cs=S.cartes.filter(c=>c.semaine===s.id&&c.date<=t).sort((a,b)=>a.rang-b.rang);
-      return `<div class="wk"><div class="h"><span class="n">${String(s.numero).padStart(2,"0")}</span><span><span class="dom">${esc(s.domaine)}${cur&&cur.id===s.id?" · en cours":""}</span><span class="nt">${esc(s.notion)}</span><span class="qs">${esc(s.question)}</span></span></div>
-       <div class="days">${cs.map(c=>`<button class="chip" data-d="${c.date}">${c.rang}. ${esc(c.titre)}</button>`).join("")}</div></div>`}).join("") : `<p class="empty">Ta première notion apparaîtra ici.</p>`;
+    const mine=maNotion();
+    html+=`<p class="label" style="margin-top:32px" id="notions">Les notions</p><p class="hint" style="margin:-4px 0 6px">Chacune se lit en 7 cartes, à ton rythme. Commence par celle qui te tente.</p>`;
+    html+= S.semaines.length ? semsAsc().map(s=>{ const pub=publiees(s.id), lu=luesDe(s.id).length, enCours=mine&&mine.id===s.id;
+      const btn = enCours ? `<span class="hint">ta notion</span>` : `<button class="pick" data-notion="${esc(s.id)}">${lu>=7?"Relire":lu?"Reprendre":"Commencer"}</button>`;
+      return `<div class="wk"><div class="h"><span class="n">${String(s.numero).padStart(2,"0")}</span><span><span class="dom">${esc(s.domaine)}${enCours?" · en cours":""}</span><span class="nt">${esc(s.notion)}</span><span class="qs">${esc(s.question)}</span>
+        <span class="pl-row" style="margin-top:8px"><span class="pl-txt">${lu}/7 lues${pub.length<7?` · ${pub.length} publiées sur 7`:""}</span>${btn}</span></span></div>
+       <div class="days">${pub.map(c=>`<button class="chip ${isRead(c)?"lu":""}" data-d="${c.date}">${isRead(c)?"✓ ":""}${c.rang}. ${esc(c.titre)}</button>`).join("")}</div></div>`}).join("") : `<p class="empty">La première notion apparaîtra ici.</p>`;
     const plan=S.plan||{suivantes:[]}, choix=plan.choix&&plan.choix.notion, o=PLATFORM.canChoose();
-    html+=`<p class="label" style="margin-top:32px">À venir</p><p class="hint" style="margin:-4px 0 6px">${o?"Choisis celle qui te tente : elle passera la semaine prochaine.":"Le programme des semaines suivantes."}</p>
+    html+=`<p class="label" style="margin-top:32px">Bientôt publiées</p><p class="hint" style="margin:-4px 0 6px">${o?"Choisis celle qui sera publiée la semaine prochaine.":"Une nouvelle notion arrive chaque semaine."}</p>
       ${choix?`<div class="up"><span><span class="dom">${esc(plan.choix.domaine||"Choisie")}</span><span class="nt">${esc(plan.choix.notion)}</span>${plan.choix.question?`<span class="qs">${esc(plan.choix.question)}</span>`:""}</span>${o?`<button class="pick" aria-pressed="true" id="unpick">Choisie · annuler</button>`:`<span class="hint">semaine prochaine</span>`}</div>`:""}
       ${(plan.suivantes||[]).filter(s=>s.notion!==choix).map(s=>`<div class="up"><span><span class="dom">${esc(s.domaine)}</span><span class="nt">${esc(s.notion)}</span><span class="qs">${esc(s.question||"")}</span></span>${o?`<button class="pick" aria-pressed="false" data-n="${esc(s.notion)}">Semaine prochaine</button>`:"<span></span>"}</div>`).join("")}
       ${o?`<div style="margin-top:18px"><label for="libre" class="label" style="display:block">Une notion qui te tente</label><input type="text" id="libre" placeholder="la jalousie, l'ennui, Montaigne…"><div class="row"><button class="btn" id="libgo">Pour la semaine prochaine</button></div><div class="status" id="pst"></div></div>`:""}
@@ -827,6 +867,7 @@ function renderIndex(){
   host.innerHTML=html;
   host.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{S.idx=b.dataset.s;renderIndex()});
   host.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{S.sel=b.dataset.d;show("jour")});
+  host.querySelectorAll("[data-notion]").forEach(b=>b.onclick=()=>choisirNotion(b.dataset.notion));
   host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
   host.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{S.filt=b.dataset.t;renderIndex()});
   PLATFORM.wireChoix(host);

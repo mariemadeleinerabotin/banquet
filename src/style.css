@@ -301,3 +301,7 @@ details.more summary::-webkit-details-marker{display:none}
 .toast .medal{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:12px;background:var(--accent);color:var(--on-accent);flex:none}
 @media (min-width:700px){ body{font-size:17px} .slide{min-height:400px;padding:32px 34px} }
 @media (prefers-reduced-motion:no-preference){.qcard,.deck{animation:rise .3s ease-out both}@keyframes rise{from{transform:translateY(6px);opacity:.6}to{transform:none;opacity:1}}}
+.week button.done .dot{background:var(--sheet);color:var(--accent);border-color:var(--accent)}
+.week button.on.done .dot{background:var(--accent);color:var(--on-accent)}
+.chip.lu{color:var(--muted)}
+.closing .btn{margin-top:0}

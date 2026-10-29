@@ -70,7 +70,7 @@ bootCommon();
     try{ const snap=await S.progRef.get(); if(!snap.exists) await S.progRef.set({etat:{},derniereGrande:null}) }
     catch(e){ S.readOnly=true }
     S.progRef.onSnapshot(s=>{ const d=s.exists?s.data():{}; S.etat=JSON.parse(JSON.stringify(d.etat||{}));
-      S.stats=JSON.parse(JSON.stringify({derniereGrande:d.derniereGrande||null,jours:d.jours||[],lues:d.lues||[],parties:d.parties||0,sansFaute:d.sansFaute||0,defis:d.defis||0,grandes:d.grandes||0,badges:d.badges||{},maitrise:d.maitrise||{},grandeScore:d.grandeScore??null}));
+      S.stats=JSON.parse(JSON.stringify({derniereGrande:d.derniereGrande||null,jours:d.jours||[],lues:d.lues||[],parties:d.parties||0,sansFaute:d.sansFaute||0,defis:d.defis||0,grandes:d.grandes||0,badges:d.badges||{},maitrise:d.maitrise||{},grandeScore:d.grandeScore??null,notion:d.notion||null}));
       S.ready=!S.readOnly; rr() },err);
     S.progRef.collection("reponses").limit(400).onSnapshot(s=>{S.reponses={};s.docs.forEach(d=>S.reponses[d.id]=d.data()); if(S.view==="jour") renderJour()},err);
   }
