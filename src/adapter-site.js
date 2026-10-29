@@ -10,19 +10,19 @@ async function loadCard(date){
   if(S.loading===date) return; S.loading=date;
   $("#cardHost").innerHTML='<p class="notice">Ouverture de la carte…</p>';
   try{ S.full[date]=await getJSON("data/cartes/"+date+".json"); S.loading=null; $("#cardHost").dataset.d=""; if(S.view==="jour") renderJour() }
-  catch(e){ S.loading=null; $("#cardHost").innerHTML='<p class="notice">La carte ne s\'est pas chargée. Vérifie ta connexion et recharge la page.</p>' }
+  catch(e){ S.loading=null; $("#cardHost").innerHTML='<p class="notice">La carte ne s\'est pas chargée. Vérifiez la connexion et rechargez la page.</p>' }
 }
 const PLATFORM={
   useHistory:true, install:true,
-  txtProg:"Pas de compte : ta progression reste sur ce téléphone.",
-  txtProgShort:"Ta progression reste sur ce téléphone.",
+  txtProg:"Sans compte ni inscription : la progression reste enregistrée sur ce téléphone.",
+  txtProgShort:"La progression reste sur ce téléphone.",
   writeProg(o){ saveLocal() },
   fullCard(date){ if(S.full[date]) return S.full[date]; loadCard(date); return null },
   toiHTML(card){
-    return `<div class="block note toi"><p class="label">À toi d'écrire</p><p class="q">${esc(card.question||"")}</p>
-     <label for="rep" class="hint">Dix lignes. Ce que tu penses vraiment, pas ce qu'il faudrait penser. Ta réponse reste sur ce téléphone.</label>
+    return `<div class="block note toi"><p class="label">À vous d'écrire</p><p class="q">${esc(card.question||"")}</p>
+     <label for="rep" class="hint">Une dizaine de lignes, pour vous. La réponse reste sur ce téléphone.</label>
      <textarea id="rep" style="min-height:170px;margin-top:6px"></textarea>
-     <div class="row"><button class="btn" id="save">Garder ma réponse</button><span class="hint" id="st" aria-live="polite"></span></div></div>`;
+     <div class="row"><button class="btn" id="save">Garder la réponse</button><span class="hint" id="st" aria-live="polite"></span></div></div>`;
   },
   wireToi(card){
     const r=S.reponses[card.date]||{}; $("#rep").value=r.texte||"";
@@ -39,5 +39,5 @@ const PLATFORM={
     S.cartes=idx.cartes||[]; S.semaines=(idx.semaines||[]).sort((a,b)=>a.numero-b.numero); S.plan={suivantes:idx.aVenir||[],choix:idx.prochaine||null};
     S.fiches=Object.entries(fi.fiches||{}).map(([id,f])=>({...f,id}));
     render();
-  }catch(e){ $("#cardHost").innerHTML='<p class="notice">Le Banquet ne s\'est pas chargé. Vérifie ta connexion et recharge la page.</p>' }
+  }catch(e){ $("#cardHost").innerHTML='<p class="notice">Le Banquet ne s\'est pas chargé. Vérifiez la connexion et rechargez la page.</p>' }
 })();
