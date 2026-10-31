@@ -311,3 +311,5 @@ details.more summary::-webkit-details-marker{display:none}
 .week button.on.done .dot{background:var(--accent);color:var(--on-accent)}
 .chip.lu{color:var(--muted)}
 .closing .btn{margin-top:0}
+
+.note.banner.stack{flex-direction:column;align-items:flex-start;gap:12px}

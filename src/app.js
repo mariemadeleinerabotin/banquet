@@ -40,10 +40,53 @@ const luesDe = id => publiees(id).filter(c=>isRead(c));
 const semsAsc = () => [...S.semaines].sort((a,b)=>a.numero-b.numero);
 function maNotion(){
   const id=S.stats.notion; const choisie=id&&S.semaines.find(s=>s.id===id); if(choisie) return choisie;
-  const ss=semsAsc(); return ss.find(s=>publiees(s.id).some(c=>!isRead(c))) || ss[ss.length-1] || null;
+  const ss=semsAsc(); return ss.find(s=>!verrou(s.id)&&publiees(s.id).some(c=>!isRead(c))) || ss.find(s=>!verrou(s.id)) || ss[ss.length-1] || null;
+}
+/* maîtrise : une bonne réponse passe « à confirmer » ; elle est acquise quand on la retrouve un AUTRE jour */
+const maitr = k => (S.stats.maitrise||{})[k]||0;
+const confirmable = k => maitr(k)===1 && (S.stats.maitriseJour||{})[k]!==today();
+const rangQ = k => { const n=maitr(k); return n>=2?3 : n===1?(confirmable(k)?0:2) : 1 };
+function noteReponse(k, ok){
+  const t=today(), m=Object.assign({},S.stats.maitrise||{}), j=Object.assign({},S.stats.maitriseJour||{}), avant=m[k]||0; let res;
+  if(!ok){ m[k]=0; res="rate" }
+  else if(avant===0 || j[k]!==t){ m[k]=Math.min(avant+1,9); j[k]=t; res=m[k]===2?"confirmee":m[k]>2?"acquise":"enroute" }
+  else res=avant>=2?"acquise":"memejour";
+  S.stats.maitrise=m; S.stats.maitriseJour=j;
+  writeProg({maitrise:{[k]:m[k]},...(j[k]?{maitriseJour:{[k]:j[k]}}:{})});
+  return res;
+}
+/* verrou : on n'entame pas une nouvelle notion tant qu'une notion commencée n'est pas lue en entier et confirmée */
+function clesNotion(id){
+  const out=[]; S.fiches.filter(f=>f.semaine===id).forEach(f=>{
+    if(f.type==="Penseur"){ (f.citations||[]).forEach(c=>out.push("q:"+f.id+":"+hk(c.texte))); (f.theses||[]).forEach(t=>out.push("q:"+f.id+":"+hk(t))); out.push("n:"+f.id) }
+    (f.qcm||[]).forEach((q,i)=>out.push("c:"+f.id+":"+i));
+  }); return out;
+}
+function bilanNotion(id){
+  const toutes=S.cartes.filter(c=>c.semaine===id), aLire=Math.max(7,toutes.length)-luesDe(id).length;
+  const reste=clesNotion(id).filter(k=>maitr(k)<2);
+  return {aLire, reste, jouables:reste.filter(k=>rangQ(k)<2), demain:reste.filter(k=>rangQ(k)===2), ok:aLire<=0&&!reste.length};
+}
+function verrou(id){
+  if(S.semaines.length<2 || S.cartes.some(c=>c.semaine===id&&isRead(c))) return null;
+  return semsAsc().find(s=>s.id!==id && S.cartes.some(c=>c.semaine===s.id&&isRead(c)) && !bilanNotion(s.id).ok) || null;
+}
+function notionAConfirmer(){
+  for(const sem of semsAsc()){ if(!S.cartes.some(c=>c.semaine===sem.id&&isRead(c))) continue; const b=bilanNotion(sem.id); if(b.aLire<=0&&!b.ok) return {sem,bilan:b} }
+  return null;
+}
+function verrouHTML(sem, bloq){
+  const b=bilanNotion(bloq.id);
+  return `<div class="note banner stack"><p><b>« ${esc(sem.notion)} » s'ouvrira quand « ${esc(bloq.notion)} » sera maîtrisée.</b> Il reste ${esc(phraseReste(b))}. Une réponse est confirmée quand vous la retrouvez un autre jour que la première fois.</p>${b.aLire>0?`<button class="btn ghost" id="goBloq">Reprendre « ${esc(bloq.notion)} »</button>`:b.jouables.length?`<button class="btn" id="goConf">Confirmer ${plur(Math.min(12,b.jouables.length),"question")}</button>`:`<p class="hint">Les dernières se confirment demain.</p>`}</div>`;
+}
+function phraseReste(b){
+  const parts=[];
+  if(b.aLire>0) parts.push(plur(b.aLire,"carte")+" à lire");
+  if(b.reste.length) parts.push(plur(b.reste.length,"question")+" à confirmer");
+  return parts.join(" et ");
 }
 function prochaineCarte(sem){ return sem ? (publiees(sem.id).find(c=>!isRead(c))||null) : null }
-function choisirNotion(id){ saveStat({notion:id}); S.sel=null; $("#cardHost").dataset.d=""; show("jour") }
+function choisirNotion(id){ if(verrou(id)) return; saveStat({notion:id}); S.sel=null; $("#cardHost").dataset.d=""; show("jour") }
 const nextOf = (e,t) => e.prochaine || addDays(e.vu||t,2);
 function dueFiches(){ const t=today(); return S.fiches.filter(f=>{const e=S.etat[f.id]; return e && nextOf(e,t)<=t}).sort((a,b)=>nextOf(S.etat[a.id],t).localeCompare(nextOf(S.etat[b.id],t))) }
 function nextDueDate(){ const t=today(); const ds=S.fiches.map(f=>S.etat[f.id]).filter(Boolean).map(e=>nextOf(e,t)).filter(d=>d>t).sort(); return ds[0]||null }
@@ -93,7 +136,7 @@ const INTRO_KEY="banquet.intro.v1";
 function howHTML(court){
   return `<p>Une notion de philosophie ou de littérature par semaine, en sept cartes courtes. On les lit dans l'ordre, à son rythme, en commençant par le premier jour.</p>
     <p>${esc(PLATFORM.txtProg)}</p>
-    ${court?"":`<p>Les sept cartes suivent toujours le même chemin : la question, la thèse, la contre-thèse, un roman, aujourd'hui, à vous, la synthèse. Les notions se choisissent dans Parcours.</p><p>L'onglet Réviser propose de petits jeux. Une réponse ratée revient le lendemain, une réponse sue revient de plus en plus tard.</p>`}
+    ${court?"":`<p>Les sept cartes suivent toujours le même chemin : la question, la thèse, la contre-thèse, un roman, aujourd'hui, à vous, la synthèse. Les notions se choisissent dans Parcours.</p><p>L'onglet Réviser propose de petits jeux. Une réponse ratée revient le lendemain ; une bonne réponse est acquise quand vous la retrouvez un autre jour. Une nouvelle notion s'ouvre quand la précédente est lue en entier et acquise.</p>`}
     ${PLATFORM.install?`<details class="howto"><summary>Ajouter Le Banquet à l'écran d'accueil</summary><p>C'est aussi ce qui protège votre progression : sur iPhone, Safari efface les données d'un site qu'on n'a pas ouvert depuis 7 jours, sauf s'il est sur l'écran d'accueil.</p><p><b>iPhone</b> : dans Safari, bouton Partager, puis « Sur l'écran d'accueil ».</p><p><b>Android</b> : dans Chrome, menu ⋮, puis « Ajouter à l'écran d'accueil ».</p></details>`:""}`;
 }
 function introHTML(sem){
@@ -157,13 +200,19 @@ function renderJour(){
     });
   } else { wk.innerHTML=""; $("#weekCap").innerHTML="" }
   let top=introHTML(sem);
-  if(sem && S.stats.notion!==sem.id && S.semaines.length>1 && lsGet(INTRO_KEY) && sem.id!==(maNotion()||{}).id) top+=`<div class="note banner"><p>Vous relisez « ${esc(sem.notion)} ».</p><button class="btn ghost" id="suivre">En faire votre notion</button></div>`;
+  if(sem && S.stats.notion!==sem.id && S.semaines.length>1 && lsGet(INTRO_KEY) && !verrou(sem.id) && sem.id!==(maNotion()||{}).id) top+=`<div class="note banner"><p>Vous relisez « ${esc(sem.notion)} ».</p><button class="btn ghost" id="suivre">En faire votre notion</button></div>`;
+  const bloq=sem&&verrou(sem.id);
+  if(bloq) top+=verrouHTML(sem,bloq);
+  else { const nc=notionAConfirmer(); if(nc&&sem&&nc.sem.id===sem.id&&S.semaines.length) top+=`<div class="note banner stack"><p><b>Notion lue.</b> Pour passer à la suivante, il reste ${esc(phraseReste(nc.bilan))}.${nc.bilan.demain.length&&!nc.bilan.jouables.length?" Les dernières se confirment demain.":""}</p>${nc.bilan.jouables.length?`<button class="btn" id="goConf">Confirmer ${plur(Math.min(12,nc.bilan.jouables.length),"question")}</button>`:""}</div>` }
   if(grandeDue()) top+=`<div class="note banner"><p><b>Grande révision de la semaine.</b> Dix questions sur ce que vous avez lu il y a plus d'une semaine.</p><button class="btn" id="goGrande">Jouer</button></div>`;
   $("#bannerHost").innerHTML=top;
   if($("#goGrande")) $("#goGrande").onclick=()=>{show("reviser");startGame("grande")};
   if($("#introOk")) $("#introOk").onclick=()=>{ lsSet(INTRO_KEY,"1"); if(sem&&!S.stats.notion) saveStat({notion:sem.id}); $("#intro").remove() };
   if($("#introPick")) $("#introPick").onclick=()=>{ lsSet(INTRO_KEY,"1"); S.idx="notions"; show("index"); setTimeout(()=>{const n=$("#notions"); if(n) n.scrollIntoView({block:"start"})},50) };
   if($("#suivre")) $("#suivre").onclick=()=>choisirNotion(sem.id);
+  if($("#goConf")) $("#goConf").onclick=()=>{show("reviser");startGame("notion")};
+  if($("#goBloq")) $("#goBloq").onclick=()=>choisirNotion(bloq.id);
+  if(bloq){ const h=$("#cardHost"); h.innerHTML=""; h.dataset.d=""; return }
   if(!S.cartes.find(c=>c.date===S.sel)) return;
   const host=$("#cardHost");
   const card=PLATFORM.fullCard(S.sel); if(!card) return;
@@ -341,7 +390,7 @@ function pools(){
   return {P,quotes,qcm};
 }
 function mastery(){
-  const {P,quotes,qcm}=pools(), m=S.stats.maitrise||{}, ok=k=>(m[k]||0)>=2, enc=k=>(m[k]||0)===1;
+  const {P,quotes,qcm}=pools(), ok=k=>maitr(k)>=2, enc=k=>maitr(k)===1;
   const vus=Object.keys(S.etat).filter(id=>fiche(id));
   return {
     cartes:{n:vus.filter(id=>(S.etat[id].niveau||0)>=2).length,e:vus.filter(id=>(S.etat[id].niveau||0)===1).length,t:vus.length,u:"ancrées"},
@@ -368,13 +417,18 @@ function renderReviser(){
   const grande = old.length>=3
     ? `<button class="game wide" data-g="grande"><span class="gt">La grande révision</span><span class="gd">Dix questions mêlées sur tout ce qui a été lu il y a plus d'une semaine.</span><span class="gc">${gd?"À faire cette semaine":"Faite le "+esc(frDate(S.stats.derniereGrande))+" · rejouer"}${S.stats.grandeScore!=null?" · dernier score "+S.stats.grandeScore+"/10":""}</span></button>`
     : "";
-  host.innerHTML=`<h2 class="page">Réviser</h2><p class="hint page-intro">Quelques minutes par jour. Une réponse ratée revient le lendemain, une réponse sue revient de plus en plus tard. ${esc(PLATFORM.txtProgShort)}</p>
+  const nc=notionAConfirmer();
+  const conf = nc ? `<div class="note banner stack"><p><b>Avant la notion suivante</b> : il reste ${esc(phraseReste(nc.bilan))} sur « ${esc(nc.sem.notion)} ».${nc.bilan.demain.length?` ${plur(nc.bilan.demain.length,"réponse trouvée","réponses trouvées")} aujourd'hui ${nc.bilan.demain.length>1?"se confirmeront":"se confirmera"} demain.`:""}</p>${nc.bilan.jouables.length?`<button class="btn" data-g="notion">Confirmer ${plur(Math.min(12,nc.bilan.jouables.length),"question")}</button>`:""}</div>` : "";
+  host.innerHTML=`<h2 class="page">Réviser</h2><p class="hint page-intro">Quelques minutes par jour. Une réponse ratée revient le lendemain. Une bonne réponse est acquise quand vous la retrouvez un autre jour : c'est de la mémoire, pas de la chance. ${esc(PLATFORM.txtProgShort)}</p>
    ${PLATFORM.reviserNotice()}
+   ${conf}
    <div class="games">${grande}${tiles.map(x=>x.h).join("")}</div>
    ${old.length<3?`<p class="hint lock">La grande révision : dix questions sur ce qui a été lu il y a plus d'une semaine. ${gdate?"La première : "+esc(frDate(gdate))+".":"Elle s'ouvre après une semaine de lecture."}</p>`:""}`;
   host.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>startGame(b.dataset.g));
 }
-const court = p => /^(Simone|Hannah)$/.test(splitName(p.terme)[0]) ? p.terme : splitName(p.terme)[1];
+// Nom court : « Schopenhauer », « Diotime » (et non « de Mantinée »), « La Fontaine » ; les prénoms gardés pour Simone et Hannah.
+const court = p => { const [pre,nom]=splitName(p.terme); if(/^(Simone|Hannah)$/.test(pre)) return p.terme;
+  if(/^(de |d')/i.test(nom)) return (p.naissance??0)<1000 ? pre : nom.replace(/^(de |d')/i,""); return nom };
 function nameOptions(correctName, others, n){
   const pool=[...new Set([...shuffle(others), ...shuffle(DISTRACTEURS)])].filter(x=>norm(x)!==norm(correctName) && !norm(correctName).includes(norm(x)) && !norm(x).includes(norm(correctName)));
   const o=shuffle([correctName, ...pool.slice(0,n-1)]);
@@ -392,10 +446,16 @@ function startGame(g){
   const {P,quotes,qcm}=pools(); let qs=[];
   if(g==="cartes"){ const c=dueFiches(); if(!c.length) return; S.game={g,cards:c,i:0,shown:false,score:0}; pushLayer("game"); return renderGame() }
   // Priorité à ce qui n'est pas encore acquis : les questions ratées, à confirmer ou jamais vues passent avant les acquises.
-  const niv=k=>Math.min((S.stats.maitrise||{})[k]||0,2), pick=(arr,key)=>shuffle(arr).sort((a,b)=>niv(key(a))-niv(key(b))).slice(0,Math.min(8,arr.length));
+  // Ordre : d'abord ce qui peut être confirmé aujourd'hui, puis les ratées et les jamais vues, puis ce qui a été trouvé aujourd'hui, enfin l'acquis.
+  const pick=(arr,key)=>shuffle(arr).sort((a,b)=>rangQ(key(a))-rangQ(key(b))).slice(0,Math.min(8,arr.length));
   if(g==="quiadit") qs=pick(quotes,q=>q.key).map(q=>makeQ("quiadit",q));
   if(g==="nom") qs=pick(P,p=>"n:"+p.id).map(p=>makeQ("nom",p));
   if(g==="qcm") qs=pick(qcm,q=>q.key).map(q=>makeQ("qcm",q));
+  if(g==="notion"){
+    const b=notionAConfirmer(); if(!b) return; const want=new Set(b.bilan.jouables);
+    qs=shuffle([...quotes.filter(q=>want.has(q.key)).map(q=>makeQ("quiadit",q)), ...P.filter(p=>want.has("n:"+p.id)).map(p=>makeQ("nom",p)), ...qcm.filter(q=>want.has(q.key)).map(q=>makeQ("qcm",q))])
+      .sort((a,b)=>rangQ(a.key)-rangQ(b.key)).slice(0,12);
+  }
   if(g==="grande"){
     const oldIds=new Set(anciennes().map(f=>f.id));
     const w=x=>1/(((S.etat[x.fiche]||{}).niveau||0)+1);
@@ -415,7 +475,7 @@ function renderGame(){
     const enRoute=G.enRoute?[...G.enRoute].filter(k=>((S.stats.maitrise||{})[k]||0)===1).length:0;
     host.innerHTML=`<div class="play"><div class="score"><p class="label">Terminé</p><div class="big">${G.score}<small> / ${total}</small></div>
       <p>${G.score===total?"Sans faute.":G.score>=total*0.7?"Solide. Les ratées reviendront en premier à la prochaine partie.":"Les ratées reviendront en premier à la prochaine partie."}</p>
-      ${enRoute?`<p class="hint">${enRoute>1?enRoute+" bonnes réponses sont":"Une bonne réponse est"} à confirmer : une réponse compte comme acquise quand elle est trouvée deux fois de suite. ${enRoute>1?"Elles reviendront":"Elle reviendra"} en premier à la prochaine partie.</p>`:""}
+      ${enRoute?`<p class="hint">${enRoute>1?enRoute+" bonnes réponses sont":"Une bonne réponse est"} à confirmer : une réponse compte comme acquise quand vous la retrouvez un autre jour, pour que ce soit de la mémoire et pas de la chance. ${enRoute>1?"Elles reviendront":"Elle reviendra"} en premier dès demain.</p>`:""}
       <div class="row" style="margin-top:16px"><button class="btn" id="again">Rejouer</button><button class="btn ghost" id="back">Retour</button></div></div></div>`;
     if(!G.done){ G.done=true; const o={parties:stat("parties")+1}; if(G.score===total) o.sansFaute=stat("sansFaute")+1; if(G.g==="grande"){ o.derniereGrande=today(); o.grandes=stat("grandes")+1; o.grandeScore=G.score } saveStat(o); checkBadges() }
     $("#again").onclick=()=>{ const g=G.g; S.game=null; if(PLATFORM.useHistory&&history.state&&history.state.layer){ history.replaceState(null,"",location.href) } startGame(g) };
@@ -431,7 +491,7 @@ function renderGame(){
     const q=G.qs[G.i], done=G.picked!==null, good=done&&G.picked===q.answer;
     body=`<div class="qcard"><span class="kind">${esc(q.kind)}</span><p class="prompt">${q.quote?"« ":""}${esc(q.prompt)}${q.quote?" »":""}</p>${q.src?`<p class="src">${esc(q.src)}</p>`:""}
       <div class="opts">${q.options.map((o,j)=>`<button data-j="${j}" ${done?"disabled":""} class="${done&&j===q.answer?"ok":""} ${done&&j===G.picked&&j!==q.answer?"ko":""}">${esc(o)}</button>`).join("")}</div>
-      <div aria-live="polite">${done?`<p class="feedback"><span class="verdict ${good?"good":"bad"}">${good?"Bien vu.":"Raté."}</span><span class="who">${good?"":"C'était "}${esc(q.options[q.answer])}</span>${esc(q.explication)}</p>`:""}</div>
+      <div aria-live="polite">${done?`<p class="feedback"><span class="verdict ${good?"good":"bad"}">${good?"Bien vu.":"Raté."}</span><span class="who">${good?"":"C'était "}${esc(q.options[q.answer])}</span>${esc(q.explication)}</p>${good&&G.res==="memejour"?`<p class="hint">Déjà trouvée aujourd'hui : elle sera confirmée si vous la retrouvez un autre jour.</p>`:good&&G.res==="confirmee"?`<p class="hint">Confirmée : trouvée deux jours différents.</p>`:""}`:""}</div>
       <div class="acts row">${done?`<button class="btn" id="nextq">${G.i<total-1?"Suivante":"Voir le score"}</button>${q.fiche?`<button class="btn ghost" data-f="${esc(q.fiche)}">Voir la fiche</button>`:""}`:""}</div></div>`;
   }
   host.innerHTML=`<div class="play"><div class="top"><button id="quit">← Arrêter</button><span class="hint">${G.i+1} / ${total}</span></div><div class="prog"><i style="width:${(G.i+(G.g!=="cartes"&&G.picked!==null?1:0))/total*100}%"></i></div>${body}</div>`;
@@ -444,10 +504,10 @@ function renderGame(){
     host.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>{
       const q=G.qs[G.i]; G.picked=+b.dataset.j; const ok=G.picked===q.answer; if(ok)G.score++;
       const f=fiche(q.fiche); if(f) grade(f,ok,false);
-      if(q.key){ const m=Object.assign({},S.stats.maitrise||{}); m[q.key]=ok?Math.min((m[q.key]||0)+1,9):0; S.stats.maitrise=m; writeProg({maitrise:{[q.key]:m[q.key]}}); if(ok) G.enRoute.add(q.key) }
+      if(q.key){ G.res=noteReponse(q.key,ok); if(ok) G.enRoute.add(q.key) }
       renderGame();
     });
-    if($("#nextq")) $("#nextq").onclick=()=>{G.i++;G.picked=null;renderGame()};
+    if($("#nextq")) $("#nextq").onclick=()=>{G.i++;G.picked=null;G.res=null;renderGame()};
     host.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>openFiche(b.dataset.f));
   }
 }
@@ -490,10 +550,11 @@ function renderIndex(){
     const mine=maNotion();
     html+=`<p class="label" style="margin-top:32px" id="notions">Les notions</p><p class="hint" style="margin:-4px 0 6px">Chacune se lit en sept cartes, à son rythme, en commençant par le premier jour.</p>`;
     html+= S.semaines.length ? semsAsc().map(s=>{ const pub=publiees(s.id), lu=luesDe(s.id).length, enCours=mine&&mine.id===s.id;
-      const btn = enCours ? `<span class="hint">en cours</span>` : `<button class="pick" data-notion="${esc(s.id)}">${lu>=7?"Relire":lu?"Reprendre":"Commencer"}</button>`;
+      const vr=verrou(s.id);
+      const btn = enCours ? `<span class="hint">en cours</span>` : vr ? `<span class="hint">après « ${esc(vr.notion)} »</span>` : `<button class="pick" data-notion="${esc(s.id)}">${lu>=7?"Relire":lu?"Reprendre":"Commencer"}</button>`;
       return `<div class="wk"><div class="h"><span class="n">${String(s.numero).padStart(2,"0")}</span><span><span class="dom">${esc(s.domaine)}${enCours?" · en cours":""}</span><span class="nt">${esc(s.notion)}</span><span class="qs">${esc(s.question)}</span>
         <span class="pl-row" style="margin-top:8px"><span class="pl-txt">${lu}/7 lues${pub.length<7?` · ${pub.length} publiées sur 7`:""}</span>${btn}</span></span></div>
-       <div class="days">${pub.map(c=>`<button class="chip ${isRead(c)?"lu":""}" data-d="${c.date}">${isRead(c)?"✓ ":""}${c.rang}. ${esc(c.titre)}</button>`).join("")}</div></div>`}).join("") : `<p class="empty">La première notion apparaîtra ici.</p>`;
+       <div class="days">${pub.map(c=>`<button class="chip ${isRead(c)?"lu":""}" data-d="${c.date}" ${vr?"disabled":""}>${isRead(c)?"✓ ":""}${c.rang}. ${esc(c.titre)}</button>`).join("")}</div></div>`}).join("") : `<p class="empty">La première notion apparaîtra ici.</p>`;
     const plan=S.plan||{suivantes:[]}, choix=plan.choix&&plan.choix.notion, o=PLATFORM.canChoose();
     html+=`<p class="label" style="margin-top:32px">Bientôt publiées</p><p class="hint" style="margin:-4px 0 6px">${o?"Choisissez celle qui sera publiée la semaine prochaine.":"Une nouvelle notion arrive chaque semaine."}</p>
       ${choix?`<div class="up"><span><span class="dom">${esc(plan.choix.domaine||"Choisie")}</span><span class="nt">${esc(plan.choix.notion)}</span>${plan.choix.question?`<span class="qs">${esc(plan.choix.question)}</span>`:""}</span>${o?`<button class="pick" aria-pressed="true" id="unpick">Choisie · annuler</button>`:`<span class="hint">semaine prochaine</span>`}</div>`:""}
